@@ -1,0 +1,53 @@
+flowchart TB
+    %% High-level architecture: Multi-agent + Agent Lightning + Hybrid QLoRA/veRL on single-GPU Colab
+
+    U["User / Task Prompts"] --> APP["Multi-Agent Application\nPlanner · Executor · Tool Agents · Evaluator"]
+
+    subgraph MAS["Multi-Agent Runtime"]
+        APP --> A1["Agent 1\nReason + Act"]
+        APP --> A2["Agent 2\nTool Use"]
+        APP --> A3["Agent 3\nReview / Judge"]
+        A1 <--> A2
+        A2 <--> A3
+        A3 --> APP
+    end
+
+    MAS --> AL["Microsoft Agent Lightning\nTelemetry Middleware"]
+    AL --> TRACE["Structured Trajectories\nStates · Actions · Tool Calls · Rewards · Failures"]
+    AL --> CREDIT["Hierarchical Credit Assignment\nLong-Horizon Success / Failure Attribution"]
+    CREDIT --> DATA["RL Transition Dataset\nGrouped Rollouts + Reward Signals"]
+    TRACE --> DATA
+
+    subgraph COLAB["Single Google Colab Node\nHigh-End GPU, e.g., NVIDIA A100"]
+        subgraph RAY["Single-Node Ray Cluster"]
+            VLLM["vLLM Rollout / Inference Engine\nGPU Memory Cap ≈ 0.35"]
+            VERL["veRL Training Backend\nGRPO Optimization"]
+        end
+
+        BASE["Base Hugging Face LLM\ne.g., Qwen2.5-7B-Instruct"]
+        QLORA["QLoRA Adapter Path\n4-bit Load + LoRA Adapters"]
+        GRPO["GRPO Fine-Tuning Path\nNo Critic Network"]
+        CKPT["Fine-Tuned HF Model / LoRA Checkpoint"]
+
+        BASE --> QLORA
+        BASE --> VLLM
+        DATA --> VERL
+        VLLM <--> VERL
+        VERL --> GRPO
+        QLORA --> GRPO
+        GRPO --> CKPT
+        CKPT --> VLLM
+    end
+
+    VLLM --> OPT["Optimized Policy Inference"]
+    OPT --> MAS
+
+    classDef source fill:#E8F1FF,stroke:#2B5FAB,stroke-width:1.5px,color:#111;
+    classDef telemetry fill:#FFF4D6,stroke:#B7791F,stroke-width:1.5px,color:#111;
+    classDef colab fill:#EAFBF0,stroke:#238636,stroke-width:1.5px,color:#111;
+    classDef output fill:#F3E8FF,stroke:#7E22CE,stroke-width:1.5px,color:#111;
+
+    class U,APP,A1,A2,A3 source;
+    class AL,TRACE,CREDIT,DATA telemetry;
+    class VLLM,VERL,BASE,QLORA,GRPO,CKPT colab;
+    class OPT output;
