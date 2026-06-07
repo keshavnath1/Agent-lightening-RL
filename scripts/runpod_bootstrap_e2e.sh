@@ -57,6 +57,7 @@ need_env DATABASE_URL
 
 export PYTHONPATH="$REPO_DIR:${PYTHONPATH:-}"
 export WORKSPACE_DIR="${WORKSPACE_DIR:-$REPO_DIR}"
+export VENV_DIR="${VENV_DIR:-$REPO_DIR/.venv}"
 export MCP_DATABASE_URL="${MCP_DATABASE_URL:-$DATABASE_URL}"
 export EXECUTION_DATABASE_URL="${EXECUTION_DATABASE_URL:-$DATABASE_URL}"
 export MLFLOW_TRACKING_URI="${MLFLOW_TRACKING_URI:-sqlite:///${REPO_DIR}/reports/mlflow_tracking.db}"
@@ -84,11 +85,13 @@ DEFAULT_OPENML_TASK_SPECS=$'31|openml_31_german_credit|mltask_openml_31_german_c
 
 mkdir -p reports/run_logs reports/service_logs reports/streamlit_logs data/grpo trajectories checkpoints artifacts
 
-if [[ ! -d .venv ]]; then
-  log "Creating .venv"
-  python3 -m venv .venv
+if [[ ! -d "$VENV_DIR" ]]; then
+  log "Creating virtual environment at ${VENV_DIR}"
+  mkdir -p "$(dirname "$VENV_DIR")"
+  python3 -m venv "$VENV_DIR"
 fi
-source .venv/bin/activate
+# shellcheck disable=SC1091
+source "$VENV_DIR/bin/activate"
 
 if [[ "$INSTALL_DEPS" == "1" ]]; then
   log "Installing CPU dependencies"

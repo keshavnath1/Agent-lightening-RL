@@ -23,6 +23,8 @@ git checkout E2E_grpo_4openml_streamlit_evidence
 export DATABASE_URL='postgres://USER:PASSWORD@HOST:PORT/DB?sslmode=require'
 # Optional, but recommended for Hugging Face model downloads.
 export HF_TOKEN='hf_...'
+# Recommended on RunPod network volumes so package install happens on local disk.
+export VENV_DIR=/root/agent-lightening-rl-grpo-venv
 
 bash scripts/runpod_bootstrap_e2e.sh
 ```

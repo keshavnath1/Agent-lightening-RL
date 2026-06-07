@@ -23,6 +23,12 @@ export EXECUTION_DATABASE_URL="${EXECUTION_DATABASE_URL:-$DATABASE_URL}"
 
 For model downloads, ask for one of these when missing and model download fails, when a gated/private model is requested, or when Hugging Face rate limits are likely:
 
+For RunPod network volumes, put the virtual environment on local disk so package install is not bottlenecked by `/workspace` NFS writes:
+
+```bash
+export VENV_DIR=/root/agent-lightening-rl-grpo-venv
+```
+
 ```bash
 export HF_TOKEN='hf_...'
 # or
