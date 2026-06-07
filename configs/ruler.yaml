@@ -1,0 +1,9 @@
+mode: vllm_judge
+judge_model: Qwen/Qwen2.5-3B-Instruct
+judge_base_url: http://127.0.0.1:8001/v1
+judge_api_key: EMPTY
+rollouts_per_group: 4
+alpha: 0.7
+beta: 0.3
+fallback_mode: null
+fail_closed: true

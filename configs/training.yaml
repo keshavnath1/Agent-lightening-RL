@@ -1,0 +1,7 @@
+trainer: trl_grpo
+reward_mode: ruler_relative
+model_name: Qwen/Qwen2.5-3B-Instruct
+output_dir: checkpoints/grpo/ruler
+rollouts_per_group: 4
+groups_per_step: 1
+max_steps: 10

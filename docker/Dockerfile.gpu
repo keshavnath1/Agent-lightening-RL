@@ -1,0 +1,17 @@
+FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-venv git curl build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace/self-improving-ml-agent
+COPY requirements-gpu.txt ./requirements-gpu.txt
+RUN python3 -m pip install --upgrade pip && python3 -m pip install -r requirements-gpu.txt
+COPY . .
+
+EXPOSE 8000 8001
+CMD ["bash", "-lc", "echo GPU plane ready. Run scripts/gpu/*.sh as needed && sleep infinity"]

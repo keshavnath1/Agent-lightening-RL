@@ -1,0 +1,4 @@
+# Optional experimental integrations. Install only when the task explicitly needs them.
+# The core CPU/GPU setup does not require these packages.
+agentlightning>=0.3.1
+openpipe-art[backend,langgraph]>=0.4.9

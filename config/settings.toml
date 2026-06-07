@@ -1,0 +1,50 @@
+[project]
+name = "self-improving-ml-agent"
+workspace_dir = "/workspace/self-improving-ml-agent"
+model_name = "Qwen/Qwen2.5-Coder-32B-Instruct"
+served_model_name = "qwen2.5-coder-32b-instruct"
+
+[runpod]
+cpu_plane_name = "agent-tools-cpu"
+gpu_plane_name = "qwen-policy-gpu"
+shared_volume_path = "/workspace"
+
+[services]
+postgres_host = "localhost"
+postgres_port = 5432
+postgres_db = "agentic_ml"
+postgres_schema = "agentic_ml"
+database_url_env = "DATABASE_URL"
+mcp_host = "0.0.0.0"
+mcp_port = 8090
+mlflow_host = "0.0.0.0"
+mlflow_port = 5000
+gpu_policy_base_url_env = "GPU_POLICY_BASE_URL"
+baseline_policy_url_env = "BASELINE_POLICY_URL"
+tuned_policy_url_env = "TUNED_POLICY_URL"
+
+[guardrails]
+no_raw_rows_in_llm_context = true
+max_profile_columns = 200
+require_schema_metadata = true
+require_mlflow_logging = true
+
+[reward_weights]
+task_completion = 0.30
+tool_validity = 0.20
+sql_correctness = 0.15
+code_execution = 0.15
+ml_experiment_quality = 0.10
+logging_completeness = 0.05
+efficiency = 0.05
+
+[paths]
+synthetic_tasks = "data/synthetic/tasks.jsonl"
+generated_datasets = "data/synthetic/datasets"
+baseline_trajectories = "trajectories/baseline"
+tuned_trajectories = "trajectories/tuned"
+scored_trajectories = "trajectories/scored"
+grpo_dataset = "data/grpo/grouped_rollouts.jsonl"
+agent_lightning_transitions = "data/grpo/agent_lightning_transitions.jsonl"
+reports = "reports"
+checkpoints = "checkpoints"

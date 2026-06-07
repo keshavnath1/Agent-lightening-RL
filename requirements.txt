@@ -1,0 +1,3 @@
+# Default CPU/reporting environment for Streamlit, Track A orchestration, reports, and local validation.
+# For GPU training/serving, run: bash scripts/setup_environment.sh --target gpu
+-r requirements-cpu.txt

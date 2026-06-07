@@ -1,0 +1,10 @@
+[project]
+name = "agent-contracts"
+version = "0.1.0"
+description = "Shared dataclass contracts for trajectories, rewards, RULER scoring, tools, and checkpoints."
+requires-python = ">=3.10"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

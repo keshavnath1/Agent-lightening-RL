@@ -1,0 +1,17 @@
+{
+  "name": "project-mcp-prisma-registry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "prisma generate --schema prisma/schema.prisma",
+    "registry": "node src/registry_cli.mjs"
+  },
+  "dependencies": {
+    "@prisma/client": "6",
+    "@prisma/extension-accelerate": "latest"
+  },
+  "devDependencies": {
+    "prisma": "6"
+  }
+}

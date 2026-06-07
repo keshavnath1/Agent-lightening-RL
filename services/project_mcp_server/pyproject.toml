@@ -1,0 +1,14 @@
+[project]
+name = "project-mcp-server"
+version = "0.1.0"
+description = "Official project MCP server service wrapper."
+requires-python = ">=3.10"
+dependencies = [
+  "mcp[cli]>=1.0.0",
+  "ml-tools",
+  "sqlalchemy>=2.0,<3.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

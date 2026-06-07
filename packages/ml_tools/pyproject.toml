@@ -1,0 +1,14 @@
+[project]
+name = "ml-tools"
+version = "0.1.0"
+description = "Compatibility package for safe ML and PostgreSQL tools."
+requires-python = ">=3.10"
+dependencies = [
+  "pandas>=2.0",
+  "psycopg2-binary>=2.9",
+  "sqlalchemy>=2.0,<3.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

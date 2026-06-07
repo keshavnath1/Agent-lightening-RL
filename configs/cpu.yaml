@@ -1,0 +1,8 @@
+track: A
+runtime: cpu
+services:
+  policy_endpoint: http://127.0.0.1:8000/v1
+  mcp_server: scripts/cpu/start_official_mcp_server.sh
+artifacts:
+  trajectories: trajectories/raw
+  reports: reports

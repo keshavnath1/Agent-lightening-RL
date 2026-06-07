@@ -1,0 +1,8 @@
+server:
+  name: self-improving-ml-agent-tools
+  command: bash scripts/cpu/start_official_mcp_server.sh
+security:
+  allow_raw_sql_tool: false
+  database_url_env: DATABASE_URL
+logging:
+  tool_call_jsonl: reports/mcp_official_tool_calls.jsonl

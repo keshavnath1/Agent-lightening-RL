@@ -1,0 +1,40 @@
+[project]
+name = "self-improving-ml-agent-monorepo"
+version = "0.1.0"
+description = "Lightweight monorepo workspace for a self-improving ML agent platform."
+requires-python = ">=3.10"
+readme = "README.md"
+
+[tool.uv.workspace]
+members = [
+  "apps/dashboard",
+  "apps/rollout_worker",
+  "apps/ruler_scorer",
+  "apps/trainer",
+  "services/project_mcp_server",
+  "packages/contracts",
+  "packages/ml_tools",
+  "packages/rewards",
+  "packages/lightning_bridge",
+  "packages/mcp_client_bridge",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [
+  ".",
+  "packages/contracts/src",
+  "packages/ml_tools/src",
+  "packages/rewards/src",
+  "packages/lightning_bridge/src",
+  "packages/mcp_client_bridge/src",
+  "services/project_mcp_server/src",
+  "apps/dashboard/src",
+  "apps/rollout_worker/src",
+  "apps/ruler_scorer/src",
+  "apps/trainer/src",
+]

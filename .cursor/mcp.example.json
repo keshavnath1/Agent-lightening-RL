@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "self-improving-ml-agent": {
+      "command": "python",
+      "args": ["-m", "src.mcp_official.server"],
+      "env": {
+        "DATABASE_URL": "postgresql+psycopg2://USER:PASSWORD@HOST:PORT/DBNAME",
+        "ALLOW_RAW_SQL_TOOL": "0"
+      }
+    }
+  }
+}

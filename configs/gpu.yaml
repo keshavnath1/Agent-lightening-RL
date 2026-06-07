@@ -1,0 +1,11 @@
+track: B
+runtime: gpu
+services:
+  policy_endpoint: http://127.0.0.1:8000/v1
+  ruler_judge_endpoint: http://127.0.0.1:8001/v1
+models:
+  default_base_model: Qwen/Qwen2.5-3B-Instruct
+  adapter_env: PEFT_ADAPTER_PATH
+artifacts:
+  checkpoints: checkpoints
+  reports: reports

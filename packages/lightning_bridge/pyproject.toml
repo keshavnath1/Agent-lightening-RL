@@ -1,0 +1,20 @@
+[project]
+name = "lightning-bridge"
+version = "0.1.0"
+description = "Compatibility package for Agent Lightning and checkpoint bridge code."
+requires-python = ">=3.10"
+dependencies = [
+  "agent-contracts",
+]
+
+[project.optional-dependencies]
+training = [
+  "peft>=0.10",
+  "torch>=2.0",
+  "transformers>=4.40",
+  "trl>=0.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

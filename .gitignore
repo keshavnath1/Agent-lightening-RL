@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.venv-gpu/
+
+# Environment and secrets
+.env
+*.env.local
+
+# Runtime artifacts
+artifacts/
+data/
+trajectories/
+checkpoints/
+logs/
+reports/
+reports/*.tmp
+reports/mlflow_runs/
+reports/mcp_profile_validation/
+reports/runpod_architecture_validation_summary.txt
+
+# Local service state, caches, and large model assets
+mlruns/
+postgres-data/
+postgres_data/
+.cache/
+.cache*/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.gguf
+*.zip
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/
+# Build/package handoff
+*.tar.gz
+*.tgz
+*.whl
+dist/
+build/
+.eggs/
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

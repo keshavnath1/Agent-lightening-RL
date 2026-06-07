@@ -1,0 +1,24 @@
+name: Agent Lightning Strict Validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  validate-agent-lightning-strict:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run strict validation
+        run: |
+          python scripts/validate/validate_agent_lightning_strict.py

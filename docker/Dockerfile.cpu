@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential curl git postgresql-client docker.io \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace/self-improving-ml-agent
+COPY requirements-cpu.txt ./requirements-cpu.txt
+RUN pip install --upgrade pip && pip install -r requirements-cpu.txt
+COPY . .
+
+EXPOSE 8090 5000
+CMD ["bash", "-lc", "echo CPU plane ready. Run scripts/cpu/*.sh as needed && sleep infinity"]
