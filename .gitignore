@@ -15,6 +15,7 @@ data/*
 !data/grpo/.gitkeep
 !data/grpo/grouped_rollouts.jsonl
 !data/grpo/ruler_scored_groups.jsonl
+data/grpo/lightning_server_transitions.jsonl
 trajectories/*
 !trajectories/.gitkeep
 !trajectories/tracka_initial/
@@ -40,9 +41,11 @@ reports/*
 !reports/service_logs/
 !reports/service_logs/*.log
 reports/service_logs/*.pid
+reports/service_logs/.nfs*
 !reports/streamlit_logs/
 !reports/streamlit_logs/*.log
 reports/streamlit_logs/*.pid
+reports/streamlit_logs/.nfs*
 reports/*.tmp
 reports/mlflow_runs/
 reports/mcp_profile_validation/
