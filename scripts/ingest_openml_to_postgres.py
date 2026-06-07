@@ -203,21 +203,65 @@ def dataset_summary(frame: pd.DataFrame, target_column: str, problem_type: str) 
     }
 
 
-def load_openml_frame(openml_id: int, target_column: str) -> tuple[pd.DataFrame, str]:
+def _target_candidates(bunch: Any, requested_target_column: str) -> list[str]:
+    if requested_target_column.lower() not in {"auto", "default", "__target__"}:
+        return [requested_target_column]
+
+    candidates: list[str] = []
+    target_names = getattr(bunch, "target_names", None)
+    if target_names:
+        if isinstance(target_names, str):
+            candidates.append(target_names)
+        else:
+            candidates.extend(str(name) for name in target_names)
+    target = getattr(bunch, "target", None)
+    target_name = getattr(target, "name", None)
+    if target_name:
+        candidates.append(str(target_name))
+    details = getattr(bunch, "details", {}) or {}
+    for key in ("default_target_attribute", "target", "target_attribute"):
+        if details.get(key):
+            candidates.append(str(details[key]))
+
+    return list(dict.fromkeys(candidates))
+
+
+def load_openml_frame(
+    openml_id: int,
+    target_column: str,
+    canonical_target_column: str,
+) -> tuple[pd.DataFrame, str, str]:
     from sklearn.datasets import fetch_openml
 
     bunch = fetch_openml(data_id=openml_id, as_frame=True)
-    frame = bunch.frame.copy()
+    raw_frame = bunch.frame.copy()
     dataset_name = str(getattr(bunch, "details", {}).get("name") or f"openml_{openml_id}")
 
-    if target_column not in frame.columns:
-        if getattr(bunch, "target", None) is not None:
-            frame[target_column] = bunch.target
+    frame = clean_frame(raw_frame)
+    candidates = [safe_identifier(c) for c in _target_candidates(bunch, target_column)]
+    resolved_target = next((candidate for candidate in candidates if candidate in frame.columns), None)
+
+    if resolved_target is None:
+        target = getattr(bunch, "target", None)
+        if target is not None:
+            fallback_target = candidates[0] if candidates else safe_identifier(canonical_target_column)
+            frame[fallback_target] = target
+            resolved_target = fallback_target
         else:
             raise RuntimeError(
                 f"Target column {target_column!r} not found and OpenML target is unavailable."
             )
-    return clean_frame(frame), dataset_name
+
+    canonical = safe_identifier(canonical_target_column)
+    if resolved_target != canonical:
+        if canonical in frame.columns:
+            raise RuntimeError(
+                f"Cannot rename OpenML target {resolved_target!r} to {canonical!r}; "
+                "canonical target already exists."
+            )
+        frame = frame.rename(columns={resolved_target: canonical})
+        resolved_target = canonical
+    return frame, dataset_name, resolved_target
 
 
 def install_contract_tables(engine) -> None:
@@ -367,6 +411,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset-key", required=True)
     parser.add_argument("--task-id", required=True)
     parser.add_argument("--target-column", required=True)
+    parser.add_argument(
+        "--canonical-target-column",
+        default="target",
+        help="Column name to expose to Track A after ingestion. Use this to normalize OpenML targets.",
+    )
     parser.add_argument("--problem-type", choices=["binary_classification", "multiclass_classification", "regression"])
     parser.add_argument("--primary-metric", required=True)
     parser.add_argument("--secondary-metric", action="append", default=[])
@@ -386,11 +435,11 @@ def main() -> None:
     engine = create_engine(database_url(args.database_url_env), future=True)
 
     install_contract_tables(engine)
-    frame, dataset_name = load_openml_frame(args.openml_id, safe_identifier(args.target_column))
-    if args.target_column != safe_identifier(args.target_column):
-        target_column = safe_identifier(args.target_column)
-    else:
-        target_column = args.target_column
+    frame, dataset_name, target_column = load_openml_frame(
+        args.openml_id,
+        args.target_column,
+        args.canonical_target_column,
+    )
     problem_type = infer_problem_type(frame[target_column], args.problem_type)
     checksum = frame_checksum(frame)
 

@@ -121,7 +121,7 @@ def render(ds: DataStatus, gs: GPUStatus, sh: ServiceHealth) -> None:
             "# Connect to GPU pod and run:\n"
             "bash scripts/setup_environment.sh --target gpu\n"
             "source .venv-gpu/bin/activate\n"
-            "TRAINER=qlora_sft bash scripts/gpu/run_02_train_policy_qlora_grpo.sh",
+            "TRAINER=trl_grpo REWARD_MODE=hybrid bash scripts/gpu/run_02_train_policy_qlora_grpo.sh",
             "GPU environment + training command",
             "Run on the GPU pod",
         )
@@ -142,7 +142,7 @@ def render(ds: DataStatus, gs: GPUStatus, sh: ServiceHealth) -> None:
             "# Dry run with explicit trainer\n"
             "python -m src.training.train_policy_qlora_grpo \\\n"
             "  --dataset data/grpo/grouped_rollouts.jsonl \\\n"
-            "  --trainer qlora_sft --dry-run\n\n"
+            "  --trainer trl_grpo --reward-mode hybrid --dry-run\n\n"
             "# Single trainer\n"
             "TRAINER=trl_grpo REWARD_MODE=hybrid \\\n"
             "  bash scripts/gpu/run_02_train_policy_qlora_grpo.sh\n\n"

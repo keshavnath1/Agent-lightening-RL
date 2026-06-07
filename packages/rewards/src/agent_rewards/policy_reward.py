@@ -1,5 +1,5 @@
 """
-Policy reward functions for GRPO / SFT training.
+Policy reward functions for TRL GRPO training.
 
 Three modes are exposed:
 

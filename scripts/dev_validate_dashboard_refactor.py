@@ -107,7 +107,6 @@ def _check_trainer_configs() -> None:
     from src.ui.components.trainer_cards import TRAINER_CONFIGS
 
     expected_keys = {
-        "qlora_sft",
         "trl_grpo",
         "verl",
         "agent_lightning_official",
@@ -153,7 +152,7 @@ def _check_checkpoint_path() -> None:
     from src.ui.view_models.dashboard_state import get_checkpoint_path
 
     assert get_checkpoint_path("trl_grpo", "ruler_relative") == "checkpoints/trackb_trl_grpo_ruler"
-    assert get_checkpoint_path("trl_grpo", "hybrid") == "checkpoints/trackb_trl_grpo_hybrid"
+    assert get_checkpoint_path("trl_grpo", "hybrid") == "checkpoints/trackb_trl_grpo_runpod"
 
 
 check("get_checkpoint_path handles ruler_relative", _check_checkpoint_path)
@@ -163,13 +162,13 @@ def _check_shell_command() -> None:
     from src.ui.view_models.dashboard_state import TrainingConfig, get_shell_command
 
     cfg = TrainingConfig(
-        trainer="qlora_sft",
+        trainer="trl_grpo",
         reward_mode="hybrid",
         num_generations=4,
-        checkpoint_path="checkpoints/trackb_qlora_sft",
+        checkpoint_path="checkpoints/trackb_trl_grpo_runpod",
     )
     cmd = get_shell_command(cfg)
-    assert "TRAINER=qlora_sft" in cmd, f"TRAINER missing in: {cmd}"
+    assert "TRAINER=trl_grpo" in cmd, f"TRAINER missing in: {cmd}"
     assert "REWARD_MODE=hybrid" in cmd, f"REWARD_MODE missing in: {cmd}"
     assert "NUM_GENERATIONS=4" in cmd, f"NUM_GENERATIONS missing in: {cmd}"
     assert "run_02_train_policy_qlora_grpo.sh" in cmd, f"script name missing in: {cmd}"

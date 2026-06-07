@@ -2,7 +2,7 @@
 
 This repository is a RunPod-ready MVP for demonstrating a **multi-agent tabular ML workflow** that improves its LLM decision policy through reinforcement-style fine-tuning. The architecture intentionally separates the **CPU tool/control plane** from the **GPU policy/training plane**.
 
-The key implementation principle is that there are two distinct training tracks. **Track A** trains or benchmarks tabular task models such as XGBoost and LightGBM. **Track B** trains the agent policy, using scored multi-agent trajectories and grouped rollout data to fine-tune `Qwen/Qwen2.5-3B-Instruct` with QLoRA/GRPO-style policy optimization.
+The key implementation principle is that there are two distinct training tracks. **Track A** trains or benchmarks tabular task models such as XGBoost and LightGBM. **Track B** trains the agent policy, using scored multi-agent trajectories and grouped rollout data with TRL GRPO-style policy optimization.
 
 ## Handoff documents
 
@@ -11,14 +11,14 @@ See `docs/implementation_summary_and_runpod_instructions.md` for the original im
 ## Fresh RunPod E2E Quickstart
 
 For a new RunPod with an empty network volume, the intended path is clone branch
-`E2E_feature`, provide runtime secrets as environment variables, and run one
+`E2E_grpo_4openml_streamlit_evidence`, provide runtime secrets as environment variables, and run one
 bootstrap script.
 
 ```bash
 cd /workspace
 git clone https://github.com/keshavnath1/Agent-lightening-RL.git
 cd Agent-lightening-RL
-git checkout E2E_feature
+git checkout E2E_grpo_4openml_streamlit_evidence
 
 export DATABASE_URL='postgres://USER:PASSWORD@HOST:PORT/DB?sslmode=require'
 # Optional, but recommended for Hugging Face model downloads.
@@ -33,28 +33,47 @@ To include the post-Track-B live endpoint redeploy comparison and dashboard:
 RUN_LIVE_POLICY=1 START_DASHBOARD=1 DASHBOARD_PORT=8888 bash scripts/runpod_bootstrap_e2e.sh
 ```
 
-The script creates `.venv`, installs dependencies, ingests OpenML 31 into the
-PostgreSQL ML contract, runs Track A, scores/group rollouts, runs Track B QLoRA
-SFT, writes benchmark reports under `reports/`, and optionally starts Streamlit.
+The script creates `.venv`, installs dependencies, ingests four OpenML tasks into the
+PostgreSQL ML contract, runs Track A, scores/groups rollouts, runs Track B TRL GRPO,
+writes benchmark reports under `reports/`, and optionally starts Streamlit.
 See `.github/prompts/fresh-runpod-e2e.prompt.md` for the Codex-facing operating
 prompt. Do not commit `.env`, database URLs, Hugging Face tokens, checkpoints,
-trajectories, or runtime reports.
+model weights, database dumps, or raw dataset rows. Sanitized trajectory JSONL,
+run logs, grouped rollout data, and benchmark reports are allowed on this branch
+so a fresh checkout can run Streamlit and inspect evidence immediately.
 
-## Latest E2E Track A → Track B QLoRA benchmark update
+## Streamlit Evidence After Checkout
 
-**Date:** June 04, 2026  
-**Author:** Manus AI
+This branch intentionally keeps sanitized demo evidence in git:
 
-The current RunPod validation completed the gated end-to-end workflow that was requested for the live demo. **Track A** was first executed against the hosted SFT policy endpoint and used as the gate for proceeding to **Track B**. After Track A succeeded, the GPU pod trained a real PEFT LoRA adapter with the repository's TRL/QLoRA SFT path, redeployed the OpenAI-compatible endpoint with `LOCAL_LLM_ADAPTER_PATH` set, and then ran the same endpoint benchmark again.
+- `reports/*.md` and `reports/*.json` for benchmark summaries
+- `reports/run_logs/*.log` and `reports/service_logs/*.log` for Track A/B operational logs
+- `trajectories/**/*.jsonl` for multi-agent traces and scored rollouts
+- `data/grpo/grouped_rollouts.jsonl` for GRPO grouped rollout evidence
 
-| Checkpoint | Evidence artifact | Result |
-|---|---|---:|
-| Track A baseline, first four tasks | `reports/e2e_tracka_baseline_20260604_052534.md` | 0.838625 average reward |
-| Track B adapter, same four tasks | `reports/e2e_tracka_vs_trackb_adapter_first4_20260604_053507.md` | 0.838625 average reward |
-| Track B adapter, full 20-task endpoint run | `reports/e2e_trackb_adapter_20260604_053507.md` | 0.841490 average reward |
-| Like-for-like comparison summary | `reports/e2e_tracka_vs_trackb_summary_20260604_053507.json` | No regression on the four-task gate |
+Run:
 
-The lightweight validation endpoint now loads the adapter during process start through `peft.PeftModel.from_pretrained(...)` when `LOCAL_LLM_ADAPTER_PATH` is provided. The `/v1/load_lora_adapter` route remains a compatibility endpoint for reload requests, while production hot-swap should still use a vLLM server with LoRA support. The dashboard Results tab has been updated to discover the new E2E reports first, so the Streamlit app surfaces the latest Track A/Track B benchmark evidence before older baseline reports.
+```bash
+streamlit run scripts/demo_dashboard.py --server.port 8888 --server.address 0.0.0.0
+```
+
+Then open the Results page to inspect reports, logs, trajectory steps, tool calls, rewards, and baseline-vs-tuned comparisons.
+
+## Current GRPO Branch Benchmark Goal
+
+This branch replaces the previous supervised Track B demo with a TRL GRPO-first path.
+The target benchmark is:
+
+| Stage | Evidence artifact |
+|---|---|
+| Four OpenML ingests | `reports/run_logs/openml_ingest_latest.log` |
+| Initial Track A rollouts | `trajectories/tracka_initial/` |
+| Scored Track A rollouts | `trajectories/tracka_initial_scored/` |
+| GRPO grouped data | `data/grpo/grouped_rollouts.jsonl` |
+| Track B TRL GRPO logs | `reports/run_logs/trackb_trl_grpo_latest.log` |
+| Baseline vs tuned comparison | `reports/tracka_initial_vs_baseline_vs_trackb_redeploy.md` |
+
+After each run, sanitize and commit the text/JSON evidence above so Streamlit can render it from a fresh checkout.
 
 ## Latest feedback implementation pass
 

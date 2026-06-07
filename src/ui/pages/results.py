@@ -8,13 +8,14 @@ from src.ui.view_models.dashboard_state import ServiceHealth, ROOT
 
 def render(sh: ServiceHealth, server_url: str) -> None:
     st.header("📊 Results — Policy Improvement")
-    st.caption("Compare the gated Track A baseline against the Track B QLoRA adapter redeploy.")
+    st.caption("Compare the gated Track A baseline against the Track B TRL GRPO adapter redeploy.")
 
     # ── Attempt to load comparison data from multiple sources ─────────────────
     shown = _try_live(sh, server_url)
     shown = _try_local_reports() or shown
     if not shown:
         _show_empty_state()
+    _show_trajectory_traces()
     _show_recent_logs()
 
 
@@ -135,6 +136,66 @@ def _try_local_reports() -> bool:
     return True
 
 
+def _show_trajectory_traces() -> None:
+    """Render committed or freshly generated multi-agent trajectory traces."""
+    trajectory_root = ROOT / "trajectories"
+    if not trajectory_root.exists():
+        return
+
+    trace_files = sorted(
+        trajectory_root.glob("**/*.jsonl"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if not trace_files:
+        return
+
+    st.markdown("### Multi-Agent Trajectory Traces")
+    st.caption("These JSONL traces are the Track A evidence used for scoring, grouping, and Track B policy training.")
+
+    labels = [str(p.relative_to(ROOT)) for p in trace_files[:50]]
+    chosen = st.selectbox("Trajectory file", labels, key="results_trajectory_file")
+    path = ROOT / chosen
+
+    records = []
+    for line in path.read_text(errors="replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            records.append(json.loads(line))
+        except Exception:
+            continue
+    if not records:
+        st.warning("Selected trajectory file did not contain parseable JSONL records.")
+        return
+
+    record = records[0]
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Task", str(record.get("task_id", "unknown"))[:28])
+    c2.metric("Policy", str(record.get("policy_version", "unknown"))[:28])
+    c3.metric("Reward", f"{float(record.get('reward') or 0.0):.4f}")
+    c4.metric("Status", record.get("final_status", "unknown"))
+
+    steps = record.get("steps", []) or []
+    if steps:
+        import pandas as pd
+
+        rows = []
+        for idx, step in enumerate(steps):
+            tool_calls = step.get("tool_calls", []) or []
+            rows.append({
+                "step": idx,
+                "agent": step.get("agent_name"),
+                "action": step.get("action"),
+                "tool_calls": len(tool_calls),
+                "failed_tools": sum(1 for call in tool_calls if call.get("status") not in {"success", "ok", "completed"}),
+            })
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    with st.expander("Raw trajectory JSON", expanded=False):
+        st.json(record)
+
+
 def _show_recent_logs() -> None:
     log_roots = [ROOT / "reports" / "run_logs", ROOT / "reports" / "service_logs"]
     log_files = sorted(
@@ -165,7 +226,7 @@ def _show_empty_state() -> None:
             "# Run baseline inference\n"
             "bash scripts/gpu/start_baseline_inference.sh\n\n"
             "# Train policy (Track B)\n"
-            "TRAINER=qlora_sft bash scripts/gpu/run_02_train_policy_qlora_grpo.sh\n\n"
+            "TRAINER=trl_grpo REWARD_MODE=hybrid bash scripts/gpu/run_02_train_policy_qlora_grpo.sh\n\n"
             "# Run tuned inference\n"
             "bash scripts/gpu/start_tuned_inference.sh",
             language="bash",

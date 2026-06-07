@@ -3,8 +3,8 @@
 # run_all_trackb_options_one_by_one.sh
 #
 # Runs every Track-B Policy Optimisation option sequentially:
-#   Option 1 – QLoRA SFT                (trl_grpo variant without RL)
-#   Option 2 – TRL GRPO  (hybrid)       reward_mode=hybrid
+#   Option 1 – TRL GRPO  (hybrid)       reward_mode=hybrid
+#   Option 2 – TRL GRPO  (trajectory)   reward_mode=trajectory_reward
 #   Option 3 – TRL GRPO  (workflow)     reward_mode=workflow_policy
 #   Option 4 – veRL handoff             (skipped if verl not installed)
 #   Option 5 – Agent Lightning Official (skipped if agentlightning not installed)
@@ -140,26 +140,28 @@ run_option() {
   fi
 }
 
-# ── Option 1: QLoRA SFT ───────────────────────────────────────────────────────
-CKPT_1="checkpoints/trackb_qlora_sft"
-run_option 1 "QLoRA SFT" "$CKPT_1" \
+# ── Option 1: TRL GRPO – hybrid reward ───────────────────────────────────────
+CKPT_1="checkpoints/trackb_trl_grpo_hybrid"
+run_option 1 "TRL GRPO (hybrid reward)" "$CKPT_1" \
   python -m src.training.train_policy_qlora_grpo \
     --dataset "$DATASET_PATH" \
     --output-dir "$CKPT_1" \
     --model-name "$MODEL_NAME" \
-    --trainer qlora_sft \
+    --trainer trl_grpo \
+    --reward-mode hybrid \
+    --num-generations "$NUM_GENERATIONS" \
     --batch-size "$BATCH_SIZE" \
     --gradient-accumulation-steps "$GRAD_ACCUM"
 
-# ── Option 2: TRL GRPO – hybrid reward ───────────────────────────────────────
-CKPT_2="checkpoints/trackb_trl_grpo_hybrid"
-run_option 2 "TRL GRPO (hybrid reward)" "$CKPT_2" \
+# ── Option 2: TRL GRPO – trajectory reward ───────────────────────────────────
+CKPT_2="checkpoints/trackb_trl_grpo_trajectory"
+run_option 2 "TRL GRPO (trajectory reward)" "$CKPT_2" \
   python -m src.training.train_policy_qlora_grpo \
     --dataset "$DATASET_PATH" \
     --output-dir "$CKPT_2" \
     --model-name "$MODEL_NAME" \
     --trainer trl_grpo \
-    --reward-mode hybrid \
+    --reward-mode trajectory_reward \
     --num-generations "$NUM_GENERATIONS" \
     --batch-size "$BATCH_SIZE" \
     --gradient-accumulation-steps "$GRAD_ACCUM"

@@ -1,21 +1,21 @@
-# Streamlit Dashboard Runbook and June 04 E2E Update
+# Streamlit Dashboard Runbook and GRPO E2E Update
 
 **Author:** Manus AI  
-**Last updated:** June 04, 2026
+**Last updated:** June 07, 2026
 
 ## Purpose
 
-The Streamlit dashboard is the operator-facing handoff surface for the self-improving ML agent. It summarizes the CPU/GPU split, shows Track A readiness, explains Track B trainer choices, and renders the latest policy-improvement reports. This update documents the validated path used for the gated **Track A → Track B** run and aligns the dashboard with the new E2E evidence files.
+The Streamlit dashboard is the operator-facing handoff surface for the self-improving ML agent. It summarizes the CPU/GPU split, shows Track A readiness, explains Track B TRL GRPO trainer choices, and renders the latest policy-improvement reports. This update documents the reproducible **Track A → Track B** run and aligns the dashboard with committed sanitized E2E evidence files.
 
 ## Validated E2E state
 
 | Area | Validated state | Evidence |
 |---|---|---|
-| Baseline policy benchmark | Track A completed against the hosted SFT endpoint before any redeploy. | `reports/e2e_tracka_baseline_20260604_052534.md` |
-| QLoRA SFT training | Track B trained a PEFT LoRA adapter from `Qwen/Qwen2.5-3B-Instruct`. | `checkpoints/qwen25-3b-agent-lora-trackb-20260604_053225/adapter_metadata.json` |
-| Adapter redeploy | The local OpenAI-compatible validation endpoint loaded the trained adapter at process start through `LOCAL_LLM_ADAPTER_PATH`. | `reports/trackb_health_20260604_053225.json` |
-| Post-redeploy benchmark | Track B completed the live endpoint benchmark after adapter redeploy. | `reports/e2e_trackb_adapter_20260604_053507.md` |
-| Before/after comparison | The first-four-task gate was unchanged at **0.838625 → 0.838625**, with no regression. | `reports/e2e_tracka_vs_trackb_adapter_first4_20260604_053507.md` |
+| Baseline policy benchmark | Track A runs against the baseline local OpenAI-compatible endpoint before any redeploy. | `reports/e2e_tracka_baseline_latest.md` |
+| TRL GRPO training | Track B trains a PEFT LoRA adapter with TRL GRPO from grouped, scored rollouts. | `checkpoints/trackb_trl_grpo_runpod/adapter_metadata.json` |
+| Adapter redeploy | The local OpenAI-compatible validation endpoint loads the trained adapter at process start through `LOCAL_LLM_ADAPTER_PATH`. | `reports/service_logs/` |
+| Post-redeploy benchmark | Track A reruns after adapter redeploy for like-for-like comparison. | `reports/e2e_trackb_adapter_latest.md` |
+| Before/after comparison | The comparison report records baseline vs tuned reward, endpoint use, and task-level deltas. | `reports/e2e_tracka_vs_trackb_summary_latest.json` |
 
 ## How to run the dashboard
 
@@ -62,16 +62,18 @@ streamlit run scripts/demo_dashboard.py --server.port 8501 --server.address 0.0.
 bash scripts/setup_environment.sh --target gpu
 source .venv-gpu/bin/activate
 python scripts/verify_environment.py --target gpu
-export TRAINER=qlora_sft
+export TRAINER=trl_grpo
+export REWARD_MODE=hybrid
+export NUM_GENERATIONS=4
 export MODEL_NAME=Qwen/Qwen2.5-3B-Instruct
 export GRPO_DATASET_PATH=/workspace/self-improving-ml-agent/data/grpo/grouped_rollouts.jsonl
-export POLICY_OUTPUT_DIR=/workspace/self-improving-ml-agent/checkpoints/qwen25-3b-agent-lora
+export POLICY_OUTPUT_DIR=/workspace/self-improving-ml-agent/checkpoints/trackb_trl_grpo_runpod
 bash scripts/gpu/run_02_train_policy_qlora_grpo.sh
 ```
 
 ## Git handoff note
 
-The clean archive generated for check-in intentionally excludes Python caches, virtual environments, model weights, checkpoints, logs, local service state, and bulky generated datasets. It keeps source code, scripts, docs, requirements files, and the key report/metadata files needed to review the E2E run.
+The clean archive generated for check-in intentionally excludes Python caches, virtual environments, model weights, checkpoints, raw dataset extracts, local service state, and secrets. It keeps source code, scripts, docs, requirements files, sanitized logs, trajectory JSONL, grouped-rollout JSONL, and benchmark reports needed to review the E2E run in Streamlit after checkout.
 
 
 ## Optional integrations

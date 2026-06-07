@@ -1,12 +1,12 @@
-# GPU training/serving environment validated for the June 04 Track B QLoRA SFT redeploy.
+# GPU training/serving environment for Track B TRL GRPO redeploy.
 # Install the CUDA-specific PyTorch wheel appropriate for your RunPod image before this file when necessary.
 # Example for CUDA 12.4 images:
 #   pip install --index-url https://download.pytorch.org/whl/cu124 torch==2.4.1
-transformers==4.46.3
+transformers>=4.51,<5.0
 accelerate>=0.34,<2.0
-peft>=0.15,<0.16
+peft>=0.15,<0.19
 datasets>=3.2,<4.0
-trl==0.12.2
+trl>=0.18,<2.0
 bitsandbytes>=0.45,<0.46
 sentencepiece>=0.2
 protobuf>=5.27

@@ -21,7 +21,7 @@ Microsoft describes Agent Lightning as a framework that can optimize agents buil
 | Trace adapter | `SpanTraceAdapter` (`src/inference/trace_adapter.py`) converts `LLMSpan` dicts → `Triplet` objects for training. | Lightning converts agent traces to RL transition tuples. | ✅ Implemented |
 | Training loop | `LightningTrainer` (`src/training/trainer_loop.py`) — `load_tasks`, `maybe_trigger_training`, `run(max_rounds)`, `fit()`. | Lightning Trainer orchestrates training rounds. | ✅ Implemented |
 | GRPO algorithm | `GRPOAlgorithm` (`src/training/grpo_algorithm.py`) — `build_triplet_dataset`, `_launch_training`, `_reload_vllm`. | Optimization Framework (veRL/GRPO). | ✅ Implemented |
-| QLoRA quantization | `train_qlora_sft` and `train_trl_grpo` both use `BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type='nf4')`. TRL GRPO passes via `model_init_kwargs`. | 4-bit GRPO training for GPU efficiency. | ✅ Implemented (fixed Session 3) |
+| LoRA quantization | `train_trl_grpo` uses `BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type='nf4')` and passes it via `model_init_kwargs`. | 4-bit GRPO training for GPU efficiency. | ✅ Implemented (fixed Session 3) |
 | veRL integration | `run_verl_training_handoff` in training script; `start_verl_training.sh` with strict mode: fails on missing veRL unless `ALLOW_VERL_FALLBACK=1`. | Official veRL training cluster. | ✅ Strict mode (fixed Session 3) |
 | Reward signal | `src/rewards/scorer.py` computes evidence-based reward components. | User-defined reward signal. | ✅ Reusable |
 | Trace visualization | Streamlit dashboard Tab 4 — Live Trace — streams LangGraph node updates in real time. | Observability. | ✅ Implemented |
@@ -37,7 +37,7 @@ Microsoft describes Agent Lightning as a framework that can optimize agents buil
 
 3. **veRL silent fallback (Issue #3)** — `start_verl_training.sh` now exits with `exit 1` when veRL is not installed, unless `ALLOW_VERL_FALLBACK=1` is explicitly set.  This prevents the Lightning Server from reporting `trainer=verl` success when TRL GRPO was silently substituted.
 
-4. **`trl_grpo` lacked 4-bit quantization (Issue #4)** — `train_trl_grpo()` now builds a `BitsAndBytesConfig` identical to `train_qlora_sft` and passes it as `model_init_kwargs` to `GRPOTrainer`.  A `try/except ImportError` guard keeps the function functional in CPU-only environments without `bitsandbytes`.
+4. **`trl_grpo` lacked 4-bit quantization (Issue #4)** — `train_trl_grpo()` now builds a `BitsAndBytesConfig` and passes it as `model_init_kwargs` to `GRPOTrainer`.  A `try/except ImportError` guard keeps the function functional in CPU-only environments without `bitsandbytes`.
 
 ## Session 2 additions
 

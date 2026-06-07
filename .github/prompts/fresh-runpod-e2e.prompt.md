@@ -2,7 +2,7 @@
 
 You are on a fresh RunPod with an empty network volume. The user has provided this GitHub repository URL and will provide runtime credentials out of band.
 
-Your objective is to clone the repository, create the runtime environment, ingest/register the benchmark task in PostgreSQL, run Track A, run Track B, optionally redeploy the tuned adapter, rerun Track A, and write reports/logs that are visible in Streamlit.
+Your objective is to clone the repository, create the runtime environment, ingest/register four OpenML benchmark tasks in PostgreSQL, run Track A, run Track B with TRL GRPO, optionally redeploy the tuned adapter, rerun Track A, and write sanitized reports/logs/trajectory evidence that are visible in Streamlit.
 
 ## Required Inputs
 
@@ -37,7 +37,7 @@ Do not commit or print real tokens. It is fine to export them in the pod shell o
 cd /workspace
 git clone https://github.com/keshavnath1/Agent-lightening-RL.git
 cd Agent-lightening-RL
-git checkout E2E_feature
+git checkout E2E_grpo_4openml_streamlit_evidence
 ```
 
 If SSH auth is configured and preferred:
@@ -80,15 +80,18 @@ tuned:    http://127.0.0.1:18081/v1/chat/completions
 3. Installs GPU dependencies when `nvidia-smi` is present or `INSTALL_GPU_DEPS=1`.
 4. Exports `MCP_DATABASE_URL` and `EXECUTION_DATABASE_URL` from `DATABASE_URL`.
 5. Runs source validations.
-6. Ingests OpenML 31 German Credit into:
+6. Ingests four OpenML tasks into the PostgreSQL ML contract:
    - `ml_data.openml_31_german_credit`
+   - `ml_data.openml_44_spambase`
+   - `ml_data.openml_1461_bank_marketing`
+   - `ml_data.openml_1489_phoneme`
    - `ml_registry.real_benchmark_tasks`
    - `ml_registry.real_dataset_summaries`
    - `ml_execution.dataset_sources`
 7. Starts the Lightning server on port `19124`.
 8. Runs Track A strict PostgreSQL/MCP rollouts.
 9. Scores trajectories and writes `data/grpo/grouped_rollouts.jsonl`.
-10. Runs Track B QLoRA SFT into `checkpoints/trackb_qlora_sft_runpod`.
+10. Runs Track B TRL GRPO into `checkpoints/trackb_trl_grpo_runpod`.
 11. Writes benchmark reports under `reports/`.
 12. Optionally starts Streamlit.
 
@@ -100,22 +103,23 @@ reports/service_logs/
 reports/tracka_initial_benchmark.md
 reports/tracka_initial_vs_baseline_vs_trackb_redeploy.md
 data/grpo/grouped_rollouts.jsonl
-checkpoints/trackb_qlora_sft_runpod/
+checkpoints/trackb_trl_grpo_runpod/
+trajectories/tracka_initial*/
+trajectories/tracka_*_live*/
 ```
 
-## Default Dataset
+## Default Datasets
 
-The default E2E task is OpenML 31 German Credit:
+The default E2E benchmark set is four OpenML tasks:
 
 ```bash
-OPENML_ID=31
-DATASET_KEY=openml_31_german_credit
-TRACKA_TASK_ID=mltask_openml_31_german_credit_baseline
-TARGET_COLUMN=class
-PRIMARY_METRIC=roc_auc
+OPENML_TASK_SPECS="31|openml_31_german_credit|mltask_openml_31_german_credit_baseline|auto|roc_auc|accuracy|10
+44|openml_44_spambase|mltask_openml_44_spambase_baseline|auto|roc_auc|accuracy|20
+1461|openml_1461_bank_marketing|mltask_openml_1461_bank_marketing_baseline|auto|roc_auc|accuracy|30
+1489|openml_1489_phoneme|mltask_openml_1489_phoneme_baseline|auto|roc_auc|accuracy|40"
 ```
 
-Override these env vars only when the user asks for a different task.
+Override this env var only when the user asks for different tasks.
 
 ## Streamlit
 
@@ -129,7 +133,8 @@ Then open the RunPod proxy URL for port `8888`.
 
 ## Safety Requirements
 
-- Never commit `.env`, tokens, model weights, checkpoints, trajectories, `reports/run_logs`, database dumps, or raw dataset rows.
+- Never commit `.env`, tokens, model weights, checkpoints, database dumps, raw dataset rows, or logs containing secrets.
+- Sanitized `reports/*.md`, `reports/*.json`, `reports/run_logs/*.log`, `reports/service_logs/*.log`, `data/grpo/*.jsonl`, and `trajectories/**/*.jsonl` may be committed as Streamlit demo evidence after secret scanning.
 - Raw rows may be read only by the execution boundary using `EXECUTION_DATABASE_URL`.
 - MCP and agent prompts receive metadata/profile summaries only.
 - If Docker is unavailable in the pod, `CODE_INTERPRETER_MODE=host_subprocess` is acceptable for RunPod validation and must be reported.
@@ -143,5 +148,5 @@ curl http://127.0.0.1:19124/health
 python -m src.agents.supervisor --task-source postgres_mcp --task-limit 1 --lightning-server-url http://127.0.0.1:19124
 python -m src.rewards.scorer --input-dir trajectories/tracka_initial --output-dir trajectories/tracka_initial_scored
 python -m src.training.prepare_grpo_dataset --input-dir trajectories/tracka_initial_scored --output data/grpo/grouped_rollouts.jsonl
-TRAINER=qlora_sft POLICY_OUTPUT_DIR=checkpoints/trackb_qlora_sft_runpod bash scripts/gpu/run_02_train_policy_qlora_grpo.sh
+TRAINER=trl_grpo REWARD_MODE=hybrid POLICY_OUTPUT_DIR=checkpoints/trackb_trl_grpo_runpod bash scripts/gpu/run_02_train_policy_qlora_grpo.sh
 ```

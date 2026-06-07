@@ -6,7 +6,7 @@
 2. Agents never open direct PostgreSQL connections.
 3. Official Project MCP is the only agent-facing metadata/task access layer.
 4. `raw_rows_exposed_to_llm=false` is required for planning/metadata tools.
-5. Full-row access is Docker/materializer-only and must never enter agent state, RULER prompts, or SFT/GRPO prompts.
+5. Full-row access is Docker/materializer-only and must never enter agent state, RULER prompts, or GRPO prompts.
 6. Production Track A fails closed when the registry/MCP layer is unavailable, empty, or invalid.
 7. Local JSONL/synthetic fallbacks are not part of the production Track A path.
 8. RULER/GRPO training must fail if required reward/ranking fields are missing; no reward-mode fallback is allowed.

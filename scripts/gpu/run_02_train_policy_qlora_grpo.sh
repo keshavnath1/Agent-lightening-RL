@@ -14,7 +14,7 @@ export WORKSPACE_DIR="${WORKSPACE_DIR:-$REPO_DIR}"
 : "${CHECKPOINT_DIR:=$POLICY_OUTPUT_DIR}"
 
 # ── Trainer selection ──────────────────────────────────────────────────────
-# Supported trainers: qlora_sft | trl_grpo | verl_grpo | agent_lightning_official | official_art_ruler
+# Supported trainers: trl_grpo | verl | agent_lightning_official | official_art_ruler
 : "${TRAINER:=trl_grpo}"
 
 # ── Reward mode (json_validity | workflow_policy | trajectory_reward | hybrid | ruler_relative)
@@ -31,8 +31,8 @@ export WORKSPACE_DIR="${WORKSPACE_DIR:-$REPO_DIR}"
 
 # ── Training hyperparameters ───────────────────────────────────────────────
 : "${TRAIN_EPOCHS:=1}"
-: "${BATCH_SIZE:=1}"
-: "${GRADIENT_ACCUMULATION_STEPS:=8}"
+: "${BATCH_SIZE:=4}"
+: "${GRADIENT_ACCUMULATION_STEPS:=2}"
 : "${LEARNING_RATE:=0.0002}"
 : "${LORA_R:=16}"
 : "${LORA_ALPHA:=32}"

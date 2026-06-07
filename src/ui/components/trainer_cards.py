@@ -5,23 +5,11 @@ from typing import Any
 
 
 TRAINER_CONFIGS: dict[str, dict[str, Any]] = {
-    "qlora_sft": {
-        "label":          "QLoRA SFT",
-        "badge":          "✅ Recommended",
-        "badge_color":    "#1e7e34",
-        "use_when":       "Safest demo, limited GPU memory",
-        "signal":         "Imitate high-reward trajectory actions (CE loss)",
-        "gpu_req":        "≥ 16 GB",
-        "reward_modes":   ["hybrid"],
-        "default_rm":     "hybrid",
-        "duration":       "Fast (< 10 min)",
-        "availability":   "always",
-    },
     "trl_grpo": {
         "label":          "TRL GRPO",
-        "badge":          "🟡 RL Demo",
-        "badge_color":    "#856404",
-        "use_when":       "Group-relative RL reward optimisation demo",
+        "badge":          "✅ Default",
+        "badge_color":    "#1e7e34",
+        "use_when":       "Default branch path: group-relative RL reward optimisation",
         "signal":         "Advantage-weighted update over grouped rollouts",
         "gpu_req":        "≥ 24 GB",
         "reward_modes":   ["hybrid", "workflow_policy", "trajectory_reward", "ruler_relative"],
@@ -81,7 +69,7 @@ def _check_availability(key: str) -> tuple[bool, str]:
 
 def render_trainer_selector() -> str:
     """Render trainer option cards. Returns the selected trainer key."""
-    selected = st.session_state.get("tb_trainer_selected", "qlora_sft")
+    selected = st.session_state.get("tb_trainer_selected", "trl_grpo")
 
     cols = st.columns(len(TRAINER_CONFIGS))
     for col, (key, cfg) in zip(cols, TRAINER_CONFIGS.items()):

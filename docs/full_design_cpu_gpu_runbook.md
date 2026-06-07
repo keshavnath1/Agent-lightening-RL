@@ -7,14 +7,13 @@ This repository now separates **strict execution modes** from local development 
 | Plane | Responsibility | Required runtime state |
 |---|---|---|
 | CPU pod | MCP/FastAPI wrapper, DataEngineer extraction from hosted PostgreSQL, agent rollouts, Agent Lightning orchestration, reward scoring, benchmark comparison | `DATABASE_URL`, `POSTGRES_SCHEMA=agentic_ml`, Python CPU requirements, optional `agentlightning` package for official Lightning mode |
-| GPU pod | vLLM/OpenAI-compatible policy endpoints, QLoRA/TRl GRPO training, optional veRL cluster command | GPU requirements, model cache, Hugging Face token when needed, `BASELINE_POLICY_URL`, `V2_POLICY_URL`, `TUNED_POLICY_URL`, and matching model names |
+| GPU pod | vLLM/OpenAI-compatible policy endpoints, TRL GRPO LoRA training, optional veRL cluster command | GPU requirements, model cache, Hugging Face token when needed, `BASELINE_POLICY_URL`, `V2_POLICY_URL`, `TUNED_POLICY_URL`, and matching model names |
 
 ## Strict trainer modes
 
 | `POLICY_TRAINER` | What it does | Failure behavior |
 |---|---|---|
 | `trl_grpo` | Runs the repository-native TRL GRPO trainer against grouped rollout data. | Fails if TRL/GPU dependencies are missing or incompatible. |
-| `qlora_sft` | Runs real QLoRA supervised fine-tuning from high-reward trajectory examples. | Fails if PEFT/Transformers/GPU dependencies are missing. |
 | `verl` | Prepares trajectory examples and hands control to the operator-provided official veRL command in `VERL_TRAIN_CMD`. | Fails if `VERL_TRAIN_CMD` is unset or exits non-zero. |
 | `agent_lightning_official` | Runs the CPU workflow through an official `agentlightning.LitAgent`/`Trainer` integration. | Fails if the official Agent Lightning package/API is not installed. |
 
@@ -88,18 +87,17 @@ bash scripts/cpu/run_08_benchmark_policy_endpoints.sh
 
 The output report is written to `reports/baseline_v2_tuned_benchmark.md`. The report includes a `live_policy_endpoint_rate` column so a benchmark cannot accidentally look like a live GPU evaluation when the policy endpoint was not used.
 
-## June 04 validated Track A → Track B run
+## GRPO Track A → Track B run
 
-**Date:** June 04, 2026  
-**Author:** Manus AI
+**Date:** June 07, 2026
 
-The current RunPod validation completed the gated end-to-end workflow that was requested for the live demo. **Track A** was first executed against the hosted SFT policy endpoint and used as the gate for proceeding to **Track B**. After Track A succeeded, the GPU pod trained a real PEFT LoRA adapter with the repository's TRL/QLoRA SFT path, redeployed the OpenAI-compatible endpoint with `LOCAL_LLM_ADAPTER_PATH` set, and then ran the same endpoint benchmark again.
+The current branch is set up for a gated end-to-end workflow. **Track A** first executes against the baseline policy endpoint and produces grouped, scored trajectories. **Track B** trains a real PEFT LoRA adapter with the repository's TRL GRPO path, redeploys the OpenAI-compatible endpoint with `LOCAL_LLM_ADAPTER_PATH` set, and then runs the same benchmark again.
 
 | Checkpoint | Evidence artifact | Result |
 |---|---|---:|
-| Track A baseline, first four tasks | `reports/e2e_tracka_baseline_20260604_052534.md` | 0.838625 average reward |
-| Track B adapter, same four tasks | `reports/e2e_tracka_vs_trackb_adapter_first4_20260604_053507.md` | 0.838625 average reward |
-| Track B adapter, full 20-task endpoint run | `reports/e2e_trackb_adapter_20260604_053507.md` | 0.841490 average reward |
-| Like-for-like comparison summary | `reports/e2e_tracka_vs_trackb_summary_20260604_053507.json` | No regression on the four-task gate |
+| Track A baseline, four OpenML tasks | `reports/e2e_tracka_baseline_latest.md` | Written by `scripts/runpod_bootstrap_e2e.sh` |
+| Track B adapter, same four tasks | `reports/e2e_tracka_vs_trackb_summary_latest.json` | Written by the post-redeploy benchmark |
+| Track B adapter endpoint run | `reports/e2e_trackb_adapter_latest.md` | Written when `RUN_LIVE_POLICY=1` |
+| Grouped GRPO evidence | `data/grpo/grouped_rollouts.jsonl` | Used by TRL GRPO training |
 
 The lightweight validation endpoint now loads the adapter during process start through `peft.PeftModel.from_pretrained(...)` when `LOCAL_LLM_ADAPTER_PATH` is provided. The `/v1/load_lora_adapter` route remains a compatibility endpoint for reload requests, while production hot-swap should still use a vLLM server with LoRA support. The dashboard Results tab has been updated to discover the new E2E reports first, so the Streamlit app surfaces the latest Track A/Track B benchmark evidence before older baseline reports.

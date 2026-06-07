@@ -4,6 +4,13 @@ set -euo pipefail
 REPO_DIR="${REPO_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 cd "$REPO_DIR"
 
+if [[ -f .env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
 log() {
   printf '\n[%s] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*"
 }
@@ -58,18 +65,16 @@ export LIGHTNING_SERVER_PORT="${LIGHTNING_SERVER_PORT:-19124}"
 export LIGHTNING_SERVER_URL="${LIGHTNING_SERVER_URL:-http://127.0.0.1:${LIGHTNING_SERVER_PORT}}"
 export LIGHTNING_MIN_ROLLOUTS="${LIGHTNING_MIN_ROLLOUTS:-1}"
 export MODEL_NAME="${MODEL_NAME:-Qwen/Qwen2.5-3B-Instruct}"
+export TRACKB_CHECKPOINT_DIR="${TRACKB_CHECKPOINT_DIR:-$REPO_DIR/checkpoints/trackb_trl_grpo_runpod}"
 
 if [[ -n "${HF_TOKEN:-}" && -z "${HUGGINGFACE_HUB_TOKEN:-}" ]]; then
   export HUGGINGFACE_HUB_TOKEN="$HF_TOKEN"
 fi
 
-: "${OPENML_ID:=31}"
-: "${DATASET_KEY:=openml_31_german_credit}"
-: "${TRACKA_TASK_ID:=mltask_openml_31_german_credit_baseline}"
-: "${TARGET_COLUMN:=class}"
-: "${PRIMARY_METRIC:=roc_auc}"
-: "${TASK_LIMIT:=1}"
-: "${TRACKA_INITIAL_ROLLOUTS:=5}"
+DEFAULT_OPENML_TASK_SPECS=$'31|openml_31_german_credit|mltask_openml_31_german_credit_baseline|auto|roc_auc|accuracy|10\n44|openml_44_spambase|mltask_openml_44_spambase_baseline|auto|roc_auc|accuracy|20\n1461|openml_1461_bank_marketing|mltask_openml_1461_bank_marketing_baseline|auto|roc_auc|accuracy|30\n1489|openml_1489_phoneme|mltask_openml_1489_phoneme_baseline|auto|roc_auc|accuracy|40'
+: "${OPENML_TASK_SPECS:=$DEFAULT_OPENML_TASK_SPECS}"
+: "${TASK_LIMIT:=$(printf '%s\n' "$OPENML_TASK_SPECS" | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')}"
+: "${TRACKA_INITIAL_ROLLOUTS:=4}"
 : "${RUN_TRACKB:=1}"
 : "${RUN_LIVE_POLICY:=0}"
 : "${INSTALL_DEPS:=1}"
@@ -106,23 +111,31 @@ python scripts/dev_validate_official_mcp_server.py
 python scripts/dev_validate_trackb_wiring.py
 python scripts/dev_validate_dashboard_refactor.py
 
-log "Installing or refreshing PostgreSQL ML contract and OpenML task"
-python scripts/ingest_openml_to_postgres.py \
-  --openml-id "$OPENML_ID" \
-  --dataset-key "$DATASET_KEY" \
-  --task-id "$TRACKA_TASK_ID" \
-  --target-column "$TARGET_COLUMN" \
-  --primary-metric "$PRIMARY_METRIC" \
-  --secondary-metric accuracy \
-  --if-exists replace \
-  | tee reports/run_logs/openml_ingest_latest.log
+log "Installing or refreshing PostgreSQL ML contract and OpenML tasks"
+: > reports/run_logs/openml_ingest_latest.log
+while IFS='|' read -r OPENML_ID DATASET_KEY TRACKA_TASK_ID TARGET_COLUMN PRIMARY_METRIC SECONDARY_METRIC PRIORITY; do
+  [[ -z "${OPENML_ID//[[:space:]]/}" ]] && continue
+  [[ "${OPENML_ID}" =~ ^[[:space:]]*# ]] && continue
+  log "Ingesting OpenML ${OPENML_ID} as ${TRACKA_TASK_ID}"
+  python scripts/ingest_openml_to_postgres.py \
+    --openml-id "$OPENML_ID" \
+    --dataset-key "$DATASET_KEY" \
+    --task-id "$TRACKA_TASK_ID" \
+    --target-column "${TARGET_COLUMN:-auto}" \
+    --canonical-target-column target \
+    --primary-metric "${PRIMARY_METRIC:-roc_auc}" \
+    --secondary-metric "${SECONDARY_METRIC:-accuracy}" \
+    --priority "${PRIORITY:-100}" \
+    --if-exists replace \
+    2>&1 | tee -a reports/run_logs/openml_ingest_latest.log
+done <<< "$OPENML_TASK_SPECS"
 
 log "Starting Lightning server"
 start_bg lightning reports/service_logs/lightning_server_${LIGHTNING_SERVER_PORT}.log \
   env LIGHTNING_SERVER_PORT="$LIGHTNING_SERVER_PORT" \
       LIGHTNING_MIN_ROLLOUTS="$LIGHTNING_MIN_ROLLOUTS" \
       LIGHTNING_TRANSITIONS_DIR="$REPO_DIR/data/grpo" \
-      LIGHTNING_CHECKPOINT_DIR="$REPO_DIR/checkpoints/trackb_qlora_sft_runpod" \
+      LIGHTNING_CHECKPOINT_DIR="$TRACKB_CHECKPOINT_DIR" \
       VLLM_BASE_URL="http://127.0.0.1:18081" \
       python -m src.training.lightning_server_app
 wait_http "${LIGHTNING_SERVER_URL}/health" "Lightning server"
@@ -150,14 +163,15 @@ python -m src.evaluation.compare_policies \
   --output reports/tracka_initial_benchmark.md
 
 if [[ "$RUN_TRACKB" == "1" ]]; then
-  log "Running Track B QLoRA SFT"
-  TRAINER="${TRAINER:-qlora_sft}" \
+  log "Running Track B TRL GRPO"
+  TRAINER="${TRAINER:-trl_grpo}" \
   REWARD_MODE="${REWARD_MODE:-hybrid}" \
+  NUM_GENERATIONS="${NUM_GENERATIONS:-4}" \
   MODEL_NAME="$MODEL_NAME" \
   GRPO_DATASET_PATH="$REPO_DIR/data/grpo/grouped_rollouts.jsonl" \
-  POLICY_OUTPUT_DIR="$REPO_DIR/checkpoints/trackb_qlora_sft_runpod" \
+  POLICY_OUTPUT_DIR="$TRACKB_CHECKPOINT_DIR" \
   bash scripts/gpu/run_02_train_policy_qlora_grpo.sh \
-  2>&1 | tee reports/run_logs/trackb_qlora_sft_latest.log
+  2>&1 | tee reports/run_logs/trackb_trl_grpo_latest.log
 fi
 
 if [[ "$RUN_LIVE_POLICY" == "1" ]]; then
@@ -166,7 +180,7 @@ if [[ "$RUN_LIVE_POLICY" == "1" ]]; then
     env LOCAL_LLM_MODEL="$MODEL_NAME" LOCAL_LLM_MAX_NEW_TOKENS="${LOCAL_LLM_MAX_NEW_TOKENS:-256}" \
       uvicorn src.inference.local_openai_server:app --host 0.0.0.0 --port 18080
   start_bg tuned_policy reports/service_logs/tuned_policy_18081.log \
-    env LOCAL_LLM_MODEL="$MODEL_NAME" LOCAL_LLM_ADAPTER_PATH="$REPO_DIR/checkpoints/trackb_qlora_sft_runpod" \
+    env LOCAL_LLM_MODEL="$MODEL_NAME" LOCAL_LLM_ADAPTER_PATH="$TRACKB_CHECKPOINT_DIR" \
       LOCAL_LLM_MAX_NEW_TOKENS="${LOCAL_LLM_MAX_NEW_TOKENS:-256}" \
       uvicorn src.inference.local_openai_server:app --host 0.0.0.0 --port 18081
   wait_http "http://127.0.0.1:18080/health" "baseline policy"

@@ -152,94 +152,6 @@ def _common_lora_config(r: int, alpha: int, dropout: float):
     )
 
 
-def train_qlora_sft(
-    examples: list[dict[str, Any]],
-    output_dir: Path,
-    model_name: str,
-    epochs: float,
-    batch_size: int,
-    gradient_accumulation_steps: int,
-    learning_rate: float,
-    max_seq_length: int,
-    lora_r: int,
-    lora_alpha: int,
-    lora_dropout: float,
-) -> dict[str, Any]:
-    import torch
-    from datasets import Dataset
-    from peft import get_peft_model, prepare_model_for_kbit_training
-    from transformers import (
-        AutoModelForCausalLM,
-        AutoTokenizer,
-        BitsAndBytesConfig,
-        DataCollatorForLanguageModeling,
-        Trainer,
-        TrainingArguments,
-    )
-
-    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True, trust_remote_code=True)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-
-    quantization_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type='nf4',
-        bnb_4bit_use_double_quant=True,
-        bnb_4bit_compute_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-    )
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        quantization_config=quantization_config,
-        device_map='auto',
-        trust_remote_code=True,
-    )
-    model = prepare_model_for_kbit_training(model)
-    model = get_peft_model(model, _common_lora_config(lora_r, lora_alpha, lora_dropout))
-
-    dataset = Dataset.from_list([{'text': row['text']} for row in examples])
-
-    def tokenize(batch: dict[str, list[str]]) -> dict[str, Any]:
-        tokenized = tokenizer(
-            batch['text'],
-            truncation=True,
-            max_length=max_seq_length,
-            padding=False,
-        )
-        tokenized['labels'] = [ids.copy() for ids in tokenized['input_ids']]
-        return tokenized
-
-    tokenized_dataset = dataset.map(tokenize, batched=True, remove_columns=['text'])
-    training_args = TrainingArguments(
-        output_dir=str(output_dir),
-        num_train_epochs=epochs,
-        per_device_train_batch_size=batch_size,
-        gradient_accumulation_steps=gradient_accumulation_steps,
-        learning_rate=learning_rate,
-        logging_steps=5,
-        save_strategy='epoch',
-        bf16=torch.cuda.is_available() and torch.cuda.is_bf16_supported(),
-        fp16=torch.cuda.is_available() and not torch.cuda.is_bf16_supported(),
-        report_to=['none'],
-        remove_unused_columns=False,
-    )
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=tokenized_dataset,
-        data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False),
-    )
-    trainer.train()
-    model.save_pretrained(output_dir)
-    tokenizer.save_pretrained(output_dir)
-    return {
-        'trainer': 'qlora_sft',
-        'adapter_status': 'trained',
-        'num_examples': len(examples),
-        'model_name': model_name,
-        'output_dir': str(output_dir),
-    }
-
-
 def _get_reward_fn(mode: str):
     """Return reward function for the given mode string with fail-closed semantics."""
     try:
@@ -289,7 +201,7 @@ def train_trl_grpo(
     ])
     peft_config = _common_lora_config(lora_r, lora_alpha, lora_dropout)
 
-    # 4-bit QLoRA quantization config (mirrors train_qlora_sft).
+    # 4-bit LoRA quantization config for memory-efficient GRPO training.
     # model_init_kwargs is accepted by GRPOTrainer when `model` is a string.
     try:
         from transformers import BitsAndBytesConfig as _BnB
@@ -455,7 +367,7 @@ def main() -> None:
     parser.add_argument('--dataset', default='data/grpo/grouped_rollouts.jsonl')
     parser.add_argument('--output-dir', default='checkpoints/qwen25-3b-agent-lora')
     parser.add_argument('--model-name', default='Qwen/Qwen2.5-3B-Instruct')
-    parser.add_argument('--trainer', choices=['qlora_sft', 'trl_grpo', 'agent_lightning_official', 'verl', 'official_art_ruler'], default='trl_grpo')
+    parser.add_argument('--trainer', choices=['trl_grpo', 'agent_lightning_official', 'verl', 'official_art_ruler'], default='trl_grpo')
     parser.add_argument('--reward-mode',
                         choices=['json_validity', 'workflow_policy', 'trajectory_reward', 'hybrid', 'ruler_relative'],
                         default='hybrid',
@@ -463,8 +375,8 @@ def main() -> None:
     parser.add_argument('--num-generations', type=int, default=4,
                         help='Number of completions per prompt for GRPO group-relative scoring.')
     parser.add_argument('--epochs', type=float, default=1.0)
-    parser.add_argument('--batch-size', type=int, default=1)
-    parser.add_argument('--gradient-accumulation-steps', type=int, default=8)
+    parser.add_argument('--batch-size', type=int, default=4)
+    parser.add_argument('--gradient-accumulation-steps', type=int, default=2)
     parser.add_argument('--learning-rate', type=float, default=2e-4)
     parser.add_argument('--max-seq-length', type=int, default=2048)
     parser.add_argument('--max-trajectories-per-task', type=int, default=1)
@@ -611,8 +523,6 @@ def main() -> None:
                     reward_mode=args.reward_mode,
                     num_generations=args.num_generations,
                 )
-            elif args.trainer == 'qlora_sft':
-                metadata = train_qlora_sft(**common_kwargs)
             elif args.trainer == 'verl':
                 metadata = run_verl_training_handoff(
                     grouped_dataset_path=args.dataset,
@@ -648,7 +558,7 @@ def main() -> None:
     try:
         from src.training.checkpoint_forking import register_checkpoint, write_checkpoint_report
         checkpoint_id = out.name or f'trackb_{args.trainer}'
-        parent_id = 'trackb_qlora_sft' if args.trainer in {'trl_grpo', 'verl', 'agent_lightning_official', 'official_art_ruler'} else 'base'
+        parent_id = 'base'
         register_checkpoint(
             checkpoint_id=checkpoint_id,
             path=str(out),

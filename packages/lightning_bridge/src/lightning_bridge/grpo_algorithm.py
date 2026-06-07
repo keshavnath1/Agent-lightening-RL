@@ -1,5 +1,5 @@
 """
-GRPOAlgorithm — Agent Lightning Algorithm implementation for GRPO/QLoRA.
+GRPOAlgorithm — Agent Lightning Algorithm implementation for TRL GRPO.
 
 Implements the ``Algorithm.run()`` interface from ``agentlightning.Algorithm``
 so the training loop is a first-class citizen in the Agent Lightning
@@ -17,7 +17,7 @@ Architecture position
   write grouped_rollouts.jsonl
            │
            ▼
-  train_policy_qlora_grpo   (subprocess: GRPO / QLoRA-SFT / veRL)
+  train_policy_qlora_grpo   (subprocess: TRL GRPO / veRL / ART-RULER)
            │
            ▼
   checkpoint saved → store.add_resources({'checkpoint_path': ...})
@@ -58,7 +58,7 @@ def _now() -> str:
 
 class GRPOAlgorithm(_BASE):
     """
-    GRPO/QLoRA Algorithm for the Agent Lightning Optimization Framework.
+    TRL GRPO Algorithm for the Agent Lightning Optimization Framework.
 
     Reads succeeded rollouts from a ``LightningStoreAdapter``, groups them
     by task_id ranked by reward, writes the canonical grouped-rollouts JSONL
@@ -75,7 +75,7 @@ class GRPOAlgorithm(_BASE):
     model_name:
         Base model identifier forwarded to the training script.
     trainer:
-        Training backend: ``trl_grpo``, ``qlora_sft``, or ``verl``.
+        Training backend: ``trl_grpo``, ``agent_lightning_official``, ``verl``, or ``official_art_ruler``.
     transitions_dir:
         Directory where training data files are written.
     vllm_base_url:
@@ -231,7 +231,7 @@ class GRPOAlgorithm(_BASE):
     # ── Training subprocess ────────────────────────────────────────────────────
 
     def _launch_training(self, grouped_file: Path) -> int:
-        """Launch the GRPO/QLoRA training subprocess and start the watcher thread."""
+        """Launch the TRL GRPO training subprocess and start the watcher thread."""
         cmd = [
             'python', '-m', 'src.training.train_policy_qlora_grpo',
             '--dataset',    str(grouped_file),

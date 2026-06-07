@@ -24,7 +24,7 @@ def _infer_stage(ds: DataStatus, sh: ServiceHealth) -> str:
 
 def render(ds: DataStatus, gs: GPUStatus, sh: ServiceHealth, nav_callback) -> None:
     st.title("⚡ Self-Improving ML Agent")
-    st.caption("Gated Track A benchmark → Track B QLoRA SFT adapter redeploy → before/after endpoint benchmark")
+    st.caption("Gated Track A benchmark -> Track B TRL GRPO adapter redeploy -> before/after endpoint benchmark")
 
     current_stage = _infer_stage(ds, sh)
 
@@ -88,7 +88,7 @@ def render(ds: DataStatus, gs: GPUStatus, sh: ServiceHealth, nav_callback) -> No
     elif current_stage == "track_b":
         st.success(
             f"✅ **{ds.grouped_rollouts} grouped rollout(s)** ready.  "
-            "Run QLoRA SFT training on GPU."
+            "Run TRL GRPO training on GPU."
         )
         col_b1, col_b2 = st.columns(2)
         with col_b1:
@@ -97,7 +97,7 @@ def render(ds: DataStatus, gs: GPUStatus, sh: ServiceHealth, nav_callback) -> No
         with col_b2:
             with st.expander("Shell command"):
                 st.code(
-                    "TRAINER=qlora_sft bash scripts/gpu/run_02_train_policy_qlora_grpo.sh",
+                    "TRAINER=trl_grpo REWARD_MODE=hybrid bash scripts/gpu/run_02_train_policy_qlora_grpo.sh",
                     language="bash",
                 )
 
@@ -112,7 +112,7 @@ def render(ds: DataStatus, gs: GPUStatus, sh: ServiceHealth, nav_callback) -> No
     latest_summary = Path(__file__).resolve().parents[3] / "reports" / "e2e_tracka_vs_trackb_summary_20260604_053507.json"
     if latest_summary.exists():
         st.markdown("### Latest E2E Benchmark")
-        st.success("Track A gate passed; Track B QLoRA adapter redeploy completed; first-four-task reward remained **0.838625 → 0.838625**.")
+        st.success("Track A gate passed; Track B policy adapter redeploy completed; benchmark evidence is available in reports and trajectories.")
 
     # ── Recent artifacts ──────────────────────────────────────────────────────
     results = load_task_results()

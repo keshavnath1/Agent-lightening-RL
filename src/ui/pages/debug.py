@@ -194,7 +194,7 @@ def render(
 | veRL not installed | Low | `pip install verl` on GPU pod |
 | agentlightning not installed | Low | `pip install agentlightning` |
 | MLflow tracking URI env var | Low | Set `MLFLOW_TRACKING_URI` |
-| vLLM hot-reload after SFT | Medium | Requires matching LoRA architecture |
+| vLLM hot-reload after GRPO | Medium | Requires matching LoRA architecture |
 """
         )
 

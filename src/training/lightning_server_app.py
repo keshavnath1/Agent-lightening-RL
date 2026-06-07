@@ -93,7 +93,7 @@ class RolloutReportRequest(BaseModel):
 
     trajectory_dict carries the full scored Trajectory.to_dict() payload so
     the server can write grouped_rollouts.jsonl (task_id + ranked_trajectories
-    with full step dicts) for QLoRA/GRPO training via build_training_examples().
+    with full step dicts) for GRPO training via build_training_examples().
     """
     task_id:          str
     trajectory_id:    str
@@ -113,7 +113,7 @@ class TasksLoadRequest(BaseModel):
 
 class TrainingTriggerRequest(BaseModel):
     min_rollouts:    int | None = None
-    trainer:         str | None = None    # trl_grpo | qlora_sft | verl | agent_lightning_official
+    trainer:         str | None = None    # trl_grpo | verl | agent_lightning_official
     model_name:      str | None = None    # overrides DEFAULT_MODEL env var
     reward_mode:     str | None = 'hybrid'       # json_validity | workflow_policy | trajectory_reward | hybrid
     num_generations: int | None = 4              # GRPO group size

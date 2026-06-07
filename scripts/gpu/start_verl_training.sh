@@ -102,8 +102,8 @@ if python -c "import verl" 2>/dev/null; then
 else
   if [[ "${ALLOW_VERL_FALLBACK:-0}" == "1" ]]; then
     echo "[verl-train] WARNING: veRL not installed – falling back to TRL GRPOTrainer (ALLOW_VERL_FALLBACK=1)"
-    # Invoke the existing train_policy_qlora_grpo.py which supports
-    # both trl_grpo and qlora_sft trainers on the grouped-rollouts format.
+    # Invoke the existing train_policy_qlora_grpo.py TRL GRPO fallback
+    # on the grouped-rollouts format.
     python -m src.training.train_policy_qlora_grpo \
       --dataset    "$GRPO_DATASET_PATH" \
       --output-dir "$POLICY_OUTPUT_DIR" \

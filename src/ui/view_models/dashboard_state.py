@@ -47,10 +47,10 @@ class GPUStatus:
 
 @dataclass
 class TrainingConfig:
-    trainer: str = "qlora_sft"
+    trainer: str = "trl_grpo"
     reward_mode: str = "hybrid"
     num_generations: int = 4
-    checkpoint_path: str = "checkpoints/trackb_qlora_sft"
+    checkpoint_path: str = "checkpoints/trackb_trl_grpo_runpod"
     model_name: str = "Qwen/Qwen2.5-3B-Instruct"
     min_rollouts: int = 4
     reload_after: bool = True
@@ -251,8 +251,7 @@ def load_grouped_rollouts_for_grpo() -> list[dict[str, Any]]:
 
 def get_checkpoint_path(trainer: str, reward_mode: str | None = None) -> str:
     CHECKPOINT_MAP = {
-        "qlora_sft":                "checkpoints/trackb_qlora_sft",
-        "trl_grpo":                 "checkpoints/trackb_trl_grpo_hybrid",
+        "trl_grpo":                 "checkpoints/trackb_trl_grpo_runpod",
         "official_art_ruler":      "checkpoints/trackb_official_art_ruler",
         "verl":                     "checkpoints/trackb_verl",
         "agent_lightning_official": "checkpoints/trackb_agent_lightning",

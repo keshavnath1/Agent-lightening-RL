@@ -141,7 +141,7 @@ The implementation intentionally avoided a disruptive big-bang migration. Instea
 | `apps/dashboard` | Streamlit/dashboard app boundary | Keeps current Streamlit entry points intact while creating an app package. |
 | `apps/rollout_worker` | LangGraph rollout and Track A execution boundary | Wraps existing supervisor/rollout workflow entry points. |
 | `apps/ruler_scorer` | RULER scoring and vLLM judge app boundary | Wraps existing relative scoring and judge modules. |
-| `apps/trainer` | SFT, QLoRA/GRPO, and ART/RULER training boundary | Wraps current training scripts and keeps GPU scripts compatible. |
+| `apps/trainer` | TRL GRPO and ART/RULER training boundary | Wraps current training scripts and keeps GPU scripts compatible. |
 
 ## Post-Refactor E2E Benchmark Results
 
