@@ -58,6 +58,8 @@ need_env DATABASE_URL
 export PYTHONPATH="$REPO_DIR:${PYTHONPATH:-}"
 export WORKSPACE_DIR="${WORKSPACE_DIR:-$REPO_DIR}"
 export VENV_DIR="${VENV_DIR:-$REPO_DIR/.venv}"
+export PIP_CACHE_DIR="${PIP_CACHE_DIR:-$WORKSPACE_DIR/.cache/pip}"
+export TMPDIR="${TMPDIR:-$WORKSPACE_DIR/.tmp}"
 export MCP_DATABASE_URL="${MCP_DATABASE_URL:-$DATABASE_URL}"
 export EXECUTION_DATABASE_URL="${EXECUTION_DATABASE_URL:-$DATABASE_URL}"
 export MLFLOW_TRACKING_URI="${MLFLOW_TRACKING_URI:-sqlite:///${REPO_DIR}/reports/mlflow_tracking.db}"
@@ -84,7 +86,7 @@ DEFAULT_OPENML_TASK_SPECS=$'31|openml_31_german_credit|mltask_openml_31_german_c
 : "${DASHBOARD_PORT:=8888}"
 : "${PYTORCH_VERSION:=2.8.0}"
 
-mkdir -p reports/run_logs reports/service_logs reports/streamlit_logs data/grpo trajectories checkpoints artifacts
+mkdir -p reports/run_logs reports/service_logs reports/streamlit_logs data/grpo trajectories checkpoints artifacts "$PIP_CACHE_DIR" "$TMPDIR"
 
 if [[ ! -d "$VENV_DIR" ]]; then
   log "Creating virtual environment at ${VENV_DIR}"

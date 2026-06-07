@@ -52,6 +52,7 @@ postgres-data/
 postgres_data/
 .cache/
 .cache*/
+.tmp/
 *.safetensors
 *.bin
 *.pt
