@@ -1,0 +1,9 @@
+{
+  "trainer": "trl_grpo",
+  "adapter_status": "trained",
+  "num_examples": 20,
+  "model_name": "Qwen/Qwen2.5-3B-Instruct",
+  "training_method": "trl_grpo",
+  "grouped_rollout_groups": 4,
+  "fallback_used": false
+}

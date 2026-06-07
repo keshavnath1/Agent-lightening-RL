@@ -1,0 +1,59 @@
+{
+  "generated_at_utc": "2026-06-07T22:01:15Z",
+  "branch": "E2E_grpo_4openml_streamlit_evidence",
+  "trainer": "trl_grpo",
+  "reward_mode": "hybrid",
+  "model_name": "Qwen/Qwen2.5-3B-Instruct",
+  "dashboard_port": 8503,
+  "streamlit_url": "http://38.80.152.148:8503",
+  "artifacts": {
+    "initial_report": "reports/tracka_initial_benchmark.md",
+    "comparison_report": "reports/tracka_initial_vs_baseline_vs_trackb_redeploy.md",
+    "grouped_rollouts": "data/grpo/grouped_rollouts.jsonl",
+    "trackb_log": "reports/run_logs/trackb_trl_grpo_latest.log"
+  },
+  "counts": {
+    "trajectories/tracka_initial": 16,
+    "trajectories/tracka_initial_scored": 16,
+    "trajectories/tracka_baseline_live": 4,
+    "trajectories/tracka_baseline_live_scored": 4,
+    "trajectories/tracka_tuned_live": 4,
+    "trajectories/tracka_tuned_live_scored": 4,
+    "data/grpo/grouped_rollouts.jsonl": 4
+  },
+  "policy_summary": [
+    {
+      "policy": "initial_no_llm",
+      "tasks": 16,
+      "avg_reward": 0.85,
+      "task_success_rate": 1.0,
+      "valid_tool_rate": 1.0,
+      "live_policy_endpoint_rate": 0.0
+    },
+    {
+      "policy": "baseline_llm",
+      "tasks": 4,
+      "avg_reward": 0.85,
+      "task_success_rate": 1.0,
+      "valid_tool_rate": 1.0,
+      "live_policy_endpoint_rate": 1.0
+    },
+    {
+      "policy": "trackb_redeploy_llm",
+      "tasks": 4,
+      "avg_reward": 0.85,
+      "task_success_rate": 1.0,
+      "valid_tool_rate": 1.0,
+      "live_policy_endpoint_rate": 1.0
+    }
+  ],
+  "trackb_adapter": {
+    "trainer": "trl_grpo",
+    "adapter_status": "trained",
+    "num_examples": 20,
+    "model_name": "Qwen/Qwen2.5-3B-Instruct",
+    "training_method": "trl_grpo",
+    "grouped_rollout_groups": 4,
+    "fallback_used": false
+  }
+}

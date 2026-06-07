@@ -1,0 +1,4 @@
+2026/06/07 21:42:13 INFO mlflow.store.db.utils: Creating initial MLflow database tables...
+2026/06/07 21:42:13 INFO mlflow.store.db.utils: Updating database tables
+2026/06/07 21:42:19 INFO mlflow.tracking.fluent: Experiment with name 'self_improving_tabular_agent' does not exist. Creating a new experiment.
+Wrote 16 trajectories for 4 PostgreSQL/MCP tasks (strict mode) to trajectories/tracka_initial

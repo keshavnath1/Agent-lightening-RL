@@ -1,0 +1,32 @@
+{
+  "ok": true,
+  "task_id": "mltask_openml_31_german_credit_baseline",
+  "dataset_key": "openml_31_german_credit",
+  "row_count": 1000,
+  "source": "ml_data.openml_31_german_credit",
+  "raw_rows_exposed_to_llm": false
+}
+{
+  "ok": true,
+  "task_id": "mltask_openml_44_spambase_baseline",
+  "dataset_key": "openml_44_spambase",
+  "row_count": 4601,
+  "source": "ml_data.openml_44_spambase",
+  "raw_rows_exposed_to_llm": false
+}
+{
+  "ok": true,
+  "task_id": "mltask_openml_1461_bank_marketing_baseline",
+  "dataset_key": "openml_1461_bank_marketing",
+  "row_count": 45211,
+  "source": "ml_data.openml_1461_bank_marketing",
+  "raw_rows_exposed_to_llm": false
+}
+{
+  "ok": true,
+  "task_id": "mltask_openml_1489_phoneme_baseline",
+  "dataset_key": "openml_1489_phoneme",
+  "row_count": 5404,
+  "source": "ml_data.openml_1489_phoneme",
+  "raw_rows_exposed_to_llm": false
+}

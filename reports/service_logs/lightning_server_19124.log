@@ -1,0 +1,29 @@
+INFO:     Started server process [2846]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:19124 (Press CTRL+C to quit)
+INFO:     127.0.0.1:36460 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45964 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:45966 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:49212 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:35584 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:40278 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:53942 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:34352 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:54868 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:47332 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:56820 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:54384 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:34630 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:42536 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:43724 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:46256 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:43098 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:50934 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:34180 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:36688 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:44122 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:39056 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:49506 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:53782 - "POST /api/rollouts/report HTTP/1.1" 201 Created
+INFO:     127.0.0.1:56384 - "POST /api/rollouts/report HTTP/1.1" 201 Created

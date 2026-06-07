@@ -1,0 +1,11 @@
+INFO:     Started server process [7028]
+INFO:     Waiting for application startup.
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:00<00:00,  1.82it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00,  2.50it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00,  2.37it/s]
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:18181 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55514 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34816 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46080 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59444 - "POST /v1/chat/completions HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59010 - "POST /v1/chat/completions HTTP/1.1" 200 OK
