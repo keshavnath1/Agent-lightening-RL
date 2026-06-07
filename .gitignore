@@ -39,8 +39,10 @@ reports/*
 !reports/run_logs/*.log
 !reports/service_logs/
 !reports/service_logs/*.log
+reports/service_logs/*.pid
 !reports/streamlit_logs/
 !reports/streamlit_logs/*.log
+reports/streamlit_logs/*.pid
 reports/*.tmp
 reports/mlflow_runs/
 reports/mcp_profile_validation/
