@@ -4,7 +4,7 @@ set -euo pipefail
 TARGET="cpu"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 INSTALL_TORCH="${INSTALL_TORCH:-auto}"
-CUDA_WHEEL="${CUDA_WHEEL:-cu124}"
+PYTORCH_VERSION="${PYTORCH_VERSION:-2.8.0}"
 WITH_OPTIONAL="0"
 
 usage() {
@@ -15,12 +15,12 @@ Creates a local virtual environment for the self-improving ML agent.
 
 Targets:
   cpu  Streamlit dashboard, Track A orchestration, reports, and local validation.
-  gpu  Track B QLoRA/TRL training and OpenAI-compatible validation serving.
+  gpu  Track B TRL GRPO training and OpenAI-compatible validation serving.
 
 Examples:
   bash scripts/setup_environment.sh --target cpu
   bash scripts/setup_environment.sh --target gpu --install-torch auto
-  CUDA_WHEEL=cu124 bash scripts/setup_environment.sh --target gpu
+  PYTORCH_VERSION=2.8.0 bash scripts/setup_environment.sh --target gpu
   bash scripts/setup_environment.sh --target cpu --with-optional
 USAGE
 }
@@ -61,13 +61,15 @@ if [[ "$TARGET" == "gpu" ]]; then
   if [[ "$INSTALL_TORCH" == "yes" || "$INSTALL_TORCH" == "auto" ]]; then
     if ! python - <<'PY' >/dev/null 2>&1
 import torch
+from torch.distributed.fsdp import FSDPModule
 print(torch.__version__)
+print(FSDPModule.__name__)
 PY
     then
-      echo "Installing CUDA PyTorch wheel for ${CUDA_WHEEL}. Set INSTALL_TORCH=no if your base image already provides torch."
-      python -m pip install --index-url "https://download.pytorch.org/whl/${CUDA_WHEEL}" torch==2.4.1
+      echo "Installing PyTorch ${PYTORCH_VERSION}. Set INSTALL_TORCH=no if your base image already provides a compatible torch."
+      python -m pip install --upgrade "torch==${PYTORCH_VERSION}"
     else
-      echo "Torch already importable; keeping existing torch install."
+      echo "Compatible torch already importable; keeping existing torch install."
     fi
   fi
 fi

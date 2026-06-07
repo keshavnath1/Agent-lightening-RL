@@ -25,6 +25,8 @@ export DATABASE_URL='postgres://USER:PASSWORD@HOST:PORT/DB?sslmode=require'
 export HF_TOKEN='hf_...'
 # Recommended on RunPod network volumes so package install happens on local disk.
 export VENV_DIR=/root/agent-lightening-rl-grpo-venv
+# TRL GRPO requires a torch build with torch.distributed.fsdp.FSDPModule.
+export PYTORCH_VERSION=2.8.0
 
 bash scripts/runpod_bootstrap_e2e.sh
 ```

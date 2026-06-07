@@ -1,7 +1,6 @@
 # GPU training/serving environment for Track B TRL GRPO redeploy.
-# Install the CUDA-specific PyTorch wheel appropriate for your RunPod image before this file when necessary.
-# Example for CUDA 12.4 images:
-#   pip install --index-url https://download.pytorch.org/whl/cu124 torch==2.4.1
+# Install a PyTorch build with torch.distributed.fsdp.FSDPModule before this file
+# when necessary; TRL GRPO imports that API. Bootstrap defaults to torch==2.8.0.
 transformers>=4.51,<5.0
 accelerate>=0.34,<2.0
 peft>=0.15,<0.19

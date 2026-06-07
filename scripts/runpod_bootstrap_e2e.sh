@@ -82,6 +82,7 @@ DEFAULT_OPENML_TASK_SPECS=$'31|openml_31_german_credit|mltask_openml_31_german_c
 : "${INSTALL_GPU_DEPS:=auto}"
 : "${START_DASHBOARD:=0}"
 : "${DASHBOARD_PORT:=8888}"
+: "${PYTORCH_VERSION:=2.8.0}"
 
 mkdir -p reports/run_logs reports/service_logs reports/streamlit_logs data/grpo trajectories checkpoints artifacts
 
@@ -100,9 +101,11 @@ if [[ "$INSTALL_DEPS" == "1" ]]; then
 
   if [[ "$INSTALL_GPU_DEPS" == "1" ]] || { [[ "$INSTALL_GPU_DEPS" == "auto" ]] && command -v nvidia-smi >/dev/null 2>&1; }; then
     log "Installing GPU dependencies"
-    python - <<'PY' || pip install --index-url https://download.pytorch.org/whl/cu124 torch==2.4.1
+    python - <<'PY' || pip install --upgrade "torch==${PYTORCH_VERSION}"
 import torch
+from torch.distributed.fsdp import FSDPModule
 print(torch.__version__)
+print(FSDPModule.__name__)
 PY
     pip install -r requirements-gpu.txt
   fi

@@ -27,6 +27,7 @@ For RunPod network volumes, put the virtual environment on local disk so package
 
 ```bash
 export VENV_DIR=/root/agent-lightening-rl-grpo-venv
+export PYTORCH_VERSION=2.8.0
 ```
 
 ```bash
