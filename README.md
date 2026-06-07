@@ -34,8 +34,10 @@ bash scripts/runpod_bootstrap_e2e.sh
 To include the post-Track-B live endpoint redeploy comparison and dashboard:
 
 ```bash
-RUN_LIVE_POLICY=1 START_DASHBOARD=1 DASHBOARD_PORT=8888 bash scripts/runpod_bootstrap_e2e.sh
+RUN_LIVE_POLICY=1 START_DASHBOARD=1 DASHBOARD_PORT=8503 bash scripts/runpod_bootstrap_e2e.sh
 ```
+
+Use `DASHBOARD_PORT=8888` instead if that port is free and exposed on your pod. On the current RunPod validation pod, Jupyter owns `8888`, so Streamlit evidence was captured from `8503`.
 
 The script creates `.venv`, installs dependencies, ingests four OpenML tasks into the
 PostgreSQL ML contract, runs Track A, scores/groups rollouts, runs Track B TRL GRPO,
@@ -58,10 +60,25 @@ This branch intentionally keeps sanitized demo evidence in git:
 Run:
 
 ```bash
-streamlit run scripts/demo_dashboard.py --server.port 8888 --server.address 0.0.0.0
+LIGHTNING_SERVER_URL=http://localhost:19124 \
+VLLM_BASE_URL=http://localhost:18180 \
+MLFLOW_TRACKING_URI=/workspace/Agent-lightening-RL/mlruns \
+MLFLOW_ALLOW_FILE_STORE=true \
+streamlit run scripts/demo_dashboard.py --server.port 8503 --server.address 0.0.0.0
 ```
 
 Then open the Results page to inspect reports, logs, trajectory steps, tool calls, rewards, and baseline-vs-tuned comparisons.
+
+### Streamlit screenshot evidence
+
+The screenshots below were captured from the current RunPod dashboard with the service health line showing `OK Lightning OK vLLM OK MLflow`. They are committed as lightweight evidence that a fresh checkout can render the dashboard views from the checked-in reports, trajectories, grouped rollouts, and logs.
+
+| Dashboard view | Evidence |
+|---|---|
+| Overview and service health | ![Streamlit overview health](docs/evidence/streamlit/streamlit-overview-health.jpg) |
+| Track B TRL GRPO configuration | ![Streamlit Track B GRPO](docs/evidence/streamlit/streamlit-trackb-grpo.jpg) |
+| Results benchmark comparison | ![Streamlit results benchmark](docs/evidence/streamlit/streamlit-results-benchmark.jpg) |
+| Monorepo health inventory | ![Streamlit monorepo health](docs/evidence/streamlit/streamlit-monorepo-health.jpg) |
 
 ## Current GRPO Branch Benchmark Goal
 
