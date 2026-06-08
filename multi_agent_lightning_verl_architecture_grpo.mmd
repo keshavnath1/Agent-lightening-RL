@@ -1,0 +1,94 @@
+flowchart TB
+    %% Current architecture: Multi-agent Track A + Agent Lightning-style evidence + TRL GRPO Track B on RunPod.
+
+    U["User / Codex prompt<br/>DATABASE_URL + optional HF_TOKEN"] --> GH["GitHub branch<br/>E2E_grpo_4openml_streamlit_evidence"]
+    GH --> RP["Fresh RunPod workspace<br/>/workspace/Agent-lightening-RL"]
+
+    subgraph BOOT["Bootstrap and Services"]
+        RP --> ENV["Create venv + install deps<br/>PyTorch 2.8.0 for TRL GRPO"]
+        ENV --> VLLM_BASE["Baseline policy endpoint<br/>vLLM / OpenAI-compatible API"]
+        ENV --> LIGHTNING["Lightning-style service<br/>trajectory and reward plumbing"]
+        ENV --> DASH["Streamlit evidence console<br/>logs, traces, metrics, reports"]
+    end
+
+    subgraph MCP["Project MCP + PostgreSQL Boundary"]
+        PG["Prisma Postgres<br/>ml_registry + ml_data + ml_execution"]
+        SAFE["Safe metadata tools<br/>schema, summary, target profile"]
+        EXEC_SRC["Execution dataset source<br/>raw rows only inside runtime"]
+        PG --> SAFE
+        PG --> EXEC_SRC
+    end
+
+    subgraph OPENML["OpenML Ingestion"]
+        O31["31 German Credit"]
+        O44["44 Spambase"]
+        O1461["1461 Bank Marketing"]
+        O1489["1489 Phoneme"]
+        INGEST["scripts/ingest_openml_to_postgres.py"]
+        O31 --> INGEST
+        O44 --> INGEST
+        O1461 --> INGEST
+        O1489 --> INGEST
+        INGEST --> PG
+    end
+
+    subgraph TRACKA["Track A Multi-Agent Runtime"]
+        SUP["SupervisorAgent<br/>route workflow"]
+        DE["DataEngineerAgent<br/>safe data plan"]
+        GBM["GBMSpecialistAgent<br/>benchmark plan"]
+        SANDBOX["SandboxExecutionAgent<br/>run GBM workflow"]
+        CRITIC["CriticAgent<br/>review completeness"]
+        SUP --> DE --> GBM --> SANDBOX --> CRITIC
+    end
+
+    VLLM_BASE --> SUP
+    SAFE --> SUP
+    EXEC_SRC --> SANDBOX
+
+    subgraph EVIDENCE["Evidence Layer"]
+        TRAJ["Trajectories<br/>tool calls, artifacts, status"]
+        SCORE["Reward scorer / RULER-style ranking<br/>component breakdown"]
+        GROUPS["Grouped rollouts<br/>data/grpo/grouped_rollouts.jsonl"]
+        REPORTS["Reports and logs<br/>reports/* + trajectories/*"]
+        CRITIC --> TRAJ --> SCORE --> GROUPS
+        SCORE --> REPORTS
+    end
+
+    LIGHTNING --> TRAJ
+
+    subgraph TRACKB["Track B Policy Optimization"]
+        GRPO_DATA["Grouped rollout prompts<br/>task + trajectory context"]
+        TRL["TRL GRPO trainer<br/>REWARD_MODE=hybrid<br/>NUM_GENERATIONS=4"]
+        LORA["LoRA adapter checkpoint<br/>checkpoints/trackb_trl_grpo_runpod"]
+        GROUPS --> GRPO_DATA --> TRL --> LORA
+    end
+
+    subgraph REDEPLOY["Redeploy and Benchmark"]
+        TUNED["Tuned policy endpoint<br/>base model + LoRA adapter"]
+        RERUN["Rerun Track A live<br/>4 OpenML tasks"]
+        COMPARE["Comparison report<br/>avg reward 0.85 vs 0.85<br/>no regression, no measured lift"]
+        LORA --> TUNED --> RERUN --> COMPARE
+        RERUN --> SUP
+        COMPARE --> DASH
+        REPORTS --> DASH
+    end
+
+    subgraph SCALE["Scale-Up Path"]
+        ART["Richer ART / RULER judging"]
+        VERL["veRL or distributed GRPO<br/>larger tasks, more rollouts"]
+        GROUPS --> ART --> VERL
+    end
+
+    classDef source fill:#E8F1FF,stroke:#2B5FAB,stroke-width:1.5px,color:#111;
+    classDef service fill:#EEF2FF,stroke:#4F46E5,stroke-width:1.5px,color:#111;
+    classDef data fill:#FFF4D6,stroke:#B7791F,stroke-width:1.5px,color:#111;
+    classDef agent fill:#EAFBF0,stroke:#238636,stroke-width:1.5px,color:#111;
+    classDef train fill:#F3E8FF,stroke:#7E22CE,stroke-width:1.5px,color:#111;
+    classDef result fill:#FFECEC,stroke:#B42318,stroke-width:1.5px,color:#111;
+
+    class U,GH,RP source;
+    class ENV,VLLM_BASE,LIGHTNING,DASH service;
+    class PG,SAFE,EXEC_SRC,O31,O44,O1461,O1489,INGEST,TRAJ,SCORE,GROUPS,REPORTS data;
+    class SUP,DE,GBM,SANDBOX,CRITIC agent;
+    class GRPO_DATA,TRL,LORA,ART,VERL train;
+    class TUNED,RERUN,COMPARE result;
