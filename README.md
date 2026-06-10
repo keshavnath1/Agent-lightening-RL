@@ -48,6 +48,92 @@ model weights, database dumps, or raw dataset rows. Sanitized trajectory JSONL,
 run logs, grouped rollout data, and benchmark reports are allowed on this branch
 so a fresh checkout can run Streamlit and inspect evidence immediately.
 
+## Repository Map
+
+The repository is arranged as a lightweight monorepo. The runtime source of truth still lives mostly in `src/`, while `apps/`, `packages/`, and `services/` create clearer boundaries for review, testing, and future packaging.
+
+| Path | What it owns | Track A / Track B role |
+|---|---|---|
+| `.github/` | Codex/Copilot operating prompts, update checklists, and CI workflows. | Tells a fresh coding agent how to set up RunPod, validate the repo, and avoid secrets/raw-row leakage. |
+| `.cursor/` | Example MCP client config with placeholder credentials only. | Helps editors connect to the Project MCP server without committing real database URLs. |
+| `apps/dashboard/` | Packaged Streamlit dashboard entry boundary. | Shows service health, Track A traces, Track B GRPO config, reward breakdowns, logs, and benchmark evidence. |
+| `apps/rollout_worker/` | Track A rollout-worker app boundary. | Wraps the agent rollout path that executes task workflows and emits trajectories. |
+| `apps/ruler_scorer/` | RULER scorer app boundary. | Supports optional RULER/vLLM scoring for grouped rollouts before GRPO training. |
+| `apps/trainer/` | Trainer app boundary. | Wraps Track B training surfaces, including TRL GRPO and optional ART/RULER paths. |
+| `config/`, `configs/` | Runtime settings and YAML-style config surfaces. | Holds CPU/GPU/MCP/RULER/training defaults used by scripts and dashboard views. |
+| `data/grpo/` | Sanitized grouped rollout datasets. | Main Track A to Track B handoff: `grouped_rollouts.jsonl` is read by TRL GRPO. |
+| `docker/` | CPU and GPU Dockerfiles. | Documents reproducible environments for control-plane and policy-plane pods. |
+| `docs/` | Runbooks, architecture notes, screenshots, and validation checklists. | Explains setup, MCP boundary, Streamlit evidence, RULER handoff, and benchmark strategy. |
+| `packages/contracts/` | Shared dataclass contracts for trajectories, rewards, checkpoints, and RULER groups. | Keeps Track A outputs and Track B inputs structurally consistent. |
+| `packages/ml_tools/` | Package boundary over safe ML/PostgreSQL tooling. | Exposes metadata-safe tools used by Track A planning and execution. |
+| `packages/rewards/` | Package boundary over reward and RULER modules. | Scores Track A trajectories and supplies reward functions for Track B. |
+| `packages/lightning_bridge/` | Agent Lightning bridge/package boundary. | Carries trajectory/checkpoint bridge concepts used around training orchestration. |
+| `packages/mcp_client_bridge/` | MCP client and schema extraction boundary. | Lets agents discover Project MCP tools safely. |
+| `reports/` | Sanitized run logs, service logs, benchmark reports, and summaries. | Streamlit reads these for Track A logs, Track B logs, and baseline-vs-tuned metrics. |
+| `scripts/` | Operator entrypoints for setup, E2E bootstrap, CPU jobs, GPU jobs, and validation. | `scripts/runpod_bootstrap_e2e.sh` is the main fresh-RunPod command; see `scripts/README.md`. |
+| `services/project_mcp_server/` | Official Project MCP server package boundary. | Provides safe metadata/task/reward tools to Track A without exposing raw rows. |
+| `src/agents/` | LangGraph-style multi-agent workflow: data engineer, GBM specialist, sandbox execution, tracking, reviewer. | Core Track A runtime that produces trajectories and artifacts. |
+| `src/tools/` | PostgreSQL tooling, SQL safety, profiling, GBM benchmark, MLflow/DVC tracker, code execution. | Track A tool layer; also enforces the raw-row boundary. |
+| `src/rewards/` | Trajectory scorer, reward components, RULER scoring, TRL reward functions. | Scores Track A outputs and provides Track B reward functions. |
+| `src/training/` | GRPO dataset prep, TRL GRPO trainer, Lightning bridge/server helpers, split/build utilities. | Converts Track A evidence into GRPO data and trains Track B adapters. |
+| `src/inference/` | Policy client, local OpenAI-compatible validation server, vLLM serving helpers. | Hosts baseline and tuned policy endpoints for redeploy comparison. |
+| `src/ui/` | Streamlit page/component/view-model implementation. | Reads committed evidence and presents Track A/B logs, metrics, and traces. |
+| `tests/` | Contract, MCP, reward, training, tool, and integration tests. | Protects the Track A/Track B handoff contracts. |
+| `trajectories/` | Sanitized rollout traces and scored trajectory JSONL. | Track A evidence source; baseline and tuned reruns live here. |
+
+## Track A To Track B Mapping
+
+Track A and Track B are intentionally different loops:
+
+| Layer | Track A: agentic ML workflow | Track B: policy optimization |
+|---|---|---|
+| Goal | Solve tabular ML tasks safely and reproducibly. | Improve the LLM policy that chooses workflow actions/tools. |
+| Input | PostgreSQL task registry and metadata-only MCP tools. | Grouped, scored Track A rollouts. |
+| Main runtime | `src/agents/supervisor.py` and `src/agents/graph.py`. | `src/training/train_policy_qlora_grpo.py`. |
+| Data boundary | Agents see schemas, summaries, profiles, manifests, and task metadata. Raw rows stay in the execution layer. | Trainer sees prompts/completions/reward metadata, not raw table rows. |
+| Tooling | `src/tools/postgres_tooling.py`, `src/tools/gbm_benchmark.py`, `src/tools/dockerized_code_interpreter.py`, `src/tools/mlflow_dvc_tracker.py`. | `src/rewards/policy_reward.py`, `src/training/prepare_grpo_dataset.py`, TRL `GRPOTrainer`, PEFT LoRA. |
+| Output | Trajectories, artifacts, MLflow-style metrics, reward breakdowns, and grouped rollouts. | Adapter checkpoint metadata and LoRA weights under the configured checkpoint directory. |
+| Evidence in git | `trajectories/tracka_initial*`, `reports/tracka_initial_benchmark.md`, `data/grpo/grouped_rollouts.jsonl`. | `reports/run_logs/trackb_trl_grpo_latest.log`, `reports/trackb_trl_grpo_adapter_metadata.json`. |
+
+The important handoff file is:
+
+```text
+data/grpo/grouped_rollouts.jsonl
+```
+
+That file groups multiple trajectories for the same OpenML task. GRPO can then compare stronger and weaker completions within a task group and update the policy toward higher-reward behavior.
+
+## Redeploy Path
+
+The redeploy step is what turns Track B training into an observable before/after benchmark.
+
+```text
+Track A initial rollouts
+  -> score trajectories
+  -> data/grpo/grouped_rollouts.jsonl
+  -> Track B TRL GRPO training
+  -> checkpoints/trackb_trl_grpo_runpod
+  -> start baseline endpoint
+  -> start tuned endpoint with LOCAL_LLM_ADAPTER_PATH
+  -> rerun Track A against both endpoints
+  -> compare baseline_llm vs tuned_llm
+  -> Streamlit Results page
+```
+
+The files that contribute to redeploy are:
+
+| File or folder | Why it matters |
+|---|---|
+| `scripts/runpod_bootstrap_e2e.sh` | Orchestrates the initial Track A run, Track B training, optional local endpoint redeploy, rerun, and comparison. |
+| `scripts/gpu/run_02_train_policy_qlora_grpo.sh` | Launches Track B with `TRAINER=trl_grpo`, `REWARD_MODE`, `NUM_GENERATIONS`, `GRPO_DATASET_PATH`, and `POLICY_OUTPUT_DIR`. |
+| `src/training/train_policy_qlora_grpo.py` | Creates the TRL `GRPOTrainer`, trains, and saves the adapter. |
+| `src/inference/local_openai_server.py` | Local validation endpoint used to serve the baseline model and tuned adapter endpoint during `RUN_LIVE_POLICY=1`. |
+| `src/inference/serve_vllm.py` | vLLM-compatible serving helper for baseline/tuned policy endpoints. |
+| `checkpoints/trackb_trl_grpo_runpod/` | Runtime adapter output directory. Do not commit heavyweight checkpoint files. |
+| `reports/trackb_trl_grpo_adapter_metadata.json` | Sanitized adapter metadata that can be committed as evidence. |
+| `reports/tracka_initial_vs_baseline_vs_trackb_redeploy.md` | Final baseline LLM vs tuned LLM benchmark report. |
+| `reports/e2e_grpo_run_summary.json` | Compact Streamlit-readable summary of the E2E run. |
+
 ## Streamlit Evidence After Checkout
 
 This branch intentionally keeps sanitized demo evidence in git:
