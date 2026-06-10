@@ -109,6 +109,8 @@ GPU plane: baseline inference → RL policy training → tuned inference → hel
 
 ## Main Commands
 
+For a fuller operator map, see `scripts/README.md`. It separates the default RunPod E2E path from optional experiments and drills down into the TRL GRPO training launcher.
+
 ```bash
 # CPU Pod
 export WORKSPACE_DIR=/workspace/self-improving-ml-agent
