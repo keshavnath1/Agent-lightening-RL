@@ -23,15 +23,8 @@
   },
   "policy_summary": [
     {
-      "policy": "initial_no_llm",
-      "tasks": 16,
-      "avg_reward": 0.85,
-      "task_success_rate": 1.0,
-      "valid_tool_rate": 1.0,
-      "live_policy_endpoint_rate": 0.0
-    },
-    {
       "policy": "baseline_llm",
+      "display_name": "Track A with baseline LLM",
       "tasks": 4,
       "avg_reward": 0.85,
       "task_success_rate": 1.0,
@@ -39,7 +32,8 @@
       "live_policy_endpoint_rate": 1.0
     },
     {
-      "policy": "trackb_redeploy_llm",
+      "policy": "tuned_llm",
+      "display_name": "Track A with tuned LLM",
       "tasks": 4,
       "avg_reward": 0.85,
       "task_success_rate": 1.0,

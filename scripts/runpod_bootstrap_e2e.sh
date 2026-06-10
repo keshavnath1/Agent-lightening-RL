@@ -167,7 +167,7 @@ python -m src.training.prepare_grpo_dataset \
   --output data/grpo/grouped_rollouts.jsonl
 
 python -m src.evaluation.compare_policies \
-  --policy-dir initial_no_llm=trajectories/tracka_initial_scored \
+  --policy-dir tracka_training_evidence=trajectories/tracka_initial_scored \
   --output reports/tracka_initial_benchmark.md
 
 if [[ "$RUN_TRACKB" == "1" ]]; then
@@ -223,15 +223,12 @@ if [[ "$RUN_LIVE_POLICY" == "1" ]]; then
     --output-dir trajectories/tracka_tuned_live_scored
 
   python -m src.evaluation.compare_policies \
-    --policy-dir initial_no_llm=trajectories/tracka_initial_scored \
     --policy-dir baseline_llm=trajectories/tracka_baseline_live_scored \
-    --policy-dir trackb_redeploy_llm=trajectories/tracka_tuned_live_scored \
+    --policy-dir tuned_llm=trajectories/tracka_tuned_live_scored \
     --output reports/tracka_initial_vs_baseline_vs_trackb_redeploy.md
 else
   log "Skipping live policy rerun; set RUN_LIVE_POLICY=1 to compare baseline/tuned endpoints"
-  python -m src.evaluation.compare_policies \
-    --policy-dir initial_no_llm=trajectories/tracka_initial_scored \
-    --output reports/tracka_initial_vs_baseline_vs_trackb_redeploy.md
+  log "Keeping comparison report unchanged because baseline/tuned live endpoint trajectories were not generated"
 fi
 
 if [[ "$START_DASHBOARD" == "1" ]]; then

@@ -28,9 +28,14 @@ def summarize(input_dir: str, policy_label: str | None = None) -> pd.DataFrame:
 
 
 def _summary_row(policy: str, df: pd.DataFrame) -> dict:
+    display_names = {
+        'baseline_llm': 'Track A with baseline LLM',
+        'tuned_llm': 'Track A with tuned LLM',
+    }
     if df.empty:
         return {
             'policy': policy,
+            'display_name': display_names.get(policy, policy),
             'tasks': 0,
             'avg_reward': 0.0,
             'task_success_rate': 0.0,
@@ -39,6 +44,7 @@ def _summary_row(policy: str, df: pd.DataFrame) -> dict:
         }
     return {
         'policy': policy,
+        'display_name': display_names.get(policy, policy),
         'tasks': len(df),
         'avg_reward': round(float(df['reward'].mean()), 4),
         'task_success_rate': round(float(df['task_success'].mean()), 4),
@@ -62,14 +68,55 @@ def compare_policy_dirs(policy_dirs: list[str], output: str) -> None:
     summary = pd.DataFrame(frames)
     out = Path(output)
     out.parent.mkdir(parents=True, exist_ok=True)
-    markdown = '# Multi-Policy Benchmark Evaluation\n\n'
-    markdown += 'This report compares named policy trajectory directories, for example baseline, V2, and RL-tuned GPU endpoint runs. The `live_policy_endpoint_rate` column verifies whether each trajectory used the strict live OpenAI-compatible policy endpoint wrapper.\n\n'
-    markdown += summary.to_markdown(index=False) + '\n'
+    policy_set = set(summary['policy'].tolist()) if not summary.empty else set()
+    baseline_vs_tuned = policy_set == {'baseline_llm', 'tuned_llm'}
+    if baseline_vs_tuned:
+        markdown = '# Track A Baseline LLM vs Track A Tuned LLM\n\n'
+        markdown += (
+            'This report compares two live-policy Track A evaluation passes: '
+            'the base hosted vLLM policy endpoint and the tuned vLLM endpoint '
+            'after Track B TRL GRPO training and adapter redeploy.\n\n'
+        )
+        markdown += (
+            'The initial Track A rollouts are not shown as a benchmark policy here. '
+            'They are upstream training/evidence data used to create scored trajectories '
+            'and grouped rollouts for GRPO.\n\n'
+        )
+    else:
+        markdown = '# Multi-Policy Benchmark Evaluation\n\n'
+        markdown += (
+            'This report compares named policy trajectory directories. The '
+            '`live_policy_endpoint_rate` column verifies whether each trajectory used '
+            'the strict live OpenAI-compatible policy endpoint wrapper.\n\n'
+        )
+    display_summary = summary
+    if baseline_vs_tuned:
+        display_summary = summary.rename(columns={'tasks': 'scored_trajectories'})
+    markdown += display_summary.to_markdown(index=False) + '\n'
     if raw_frames:
         raw = pd.concat(raw_frames, ignore_index=True)
         if not raw.empty:
             pivot = raw.pivot_table(index='task_id', columns='policy', values='reward', aggfunc='mean').reset_index()
             markdown += '\n## Per-Task Reward Matrix\n\n' + pivot.to_markdown(index=False) + '\n'
+    if baseline_vs_tuned and not summary.empty:
+        rewards = dict(zip(summary['policy'], summary['avg_reward'], strict=False))
+        baseline = rewards.get('baseline_llm')
+        tuned = rewards.get('tuned_llm')
+        if baseline is not None and tuned is not None:
+            markdown += (
+                '\n## Interpretation\n\n'
+                f'Baseline LLM average reward: `{baseline:.4f}`. Tuned LLM average reward: `{tuned:.4f}`. '
+                f'Delta: `{tuned - baseline:+.4f}`.\n\n'
+            )
+            if tuned > baseline:
+                markdown += 'The tuned LLM improved over the baseline LLM on this benchmark.\n'
+            elif tuned == baseline:
+                markdown += (
+                    'The tuned LLM matched the baseline LLM on this benchmark. This proves '
+                    'redeploy and no-regression, but not measured policy lift yet.\n'
+                )
+            else:
+                markdown += 'The tuned LLM regressed against the baseline LLM on this benchmark.\n'
     out.write_text(markdown, encoding='utf-8')
     print(f'Wrote comparison report to {output}')
 

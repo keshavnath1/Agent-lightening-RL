@@ -119,7 +119,6 @@ def _try_local_reports() -> bool:
     """Fall back to pre-rendered markdown reports."""
     report_files = [
         ROOT / "reports" / "tracka_initial_vs_baseline_vs_trackb_redeploy.md",
-        ROOT / "reports" / "tracka_initial_benchmark.md",
         ROOT / "reports" / "e2e_tracka_vs_trackb_adapter_first4_20260604_053507.md",
         ROOT / "reports" / "e2e_tracka_baseline_vs_trackb_full20_20260604_053507.md",
         ROOT / "reports" / "e2e_trackb_adapter_20260604_053507.md",
@@ -151,7 +150,14 @@ def _show_trajectory_traces() -> None:
         return
 
     st.markdown("### Multi-Agent Trajectory Traces")
-    st.caption("These JSONL traces are the Track A evidence used for scoring, grouping, and Track B policy training.")
+    st.caption("These JSONL traces show Track A with baseline LLM and Track A with tuned LLM.")
+
+    comparison_files = [
+        p for p in trace_files
+        if "tracka_baseline_live" in str(p) or "tracka_tuned_live" in str(p)
+    ]
+    if comparison_files:
+        trace_files = comparison_files
 
     labels = [str(p.relative_to(ROOT)) for p in trace_files[:50]]
     chosen = st.selectbox("Trajectory file", labels, key="results_trajectory_file")
