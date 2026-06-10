@@ -6,7 +6,7 @@ Do not assume the environment is already ready. Inspect first, then install only
 
 ## Project Context
 
-This is a self-improving ML-agent monorepo with Agent-Lightning-style trajectory collection, an official Project MCP Server, PostgreSQL safe metadata tools, tool-call logging, RULER/vLLM judge scoring, TRL GRPO/QLoRA policy training, optional ART/RULER integration, a Streamlit dashboard, and CPU/GPU handoff through a shared network volume.
+This is a self-improving ML-agent monorepo with Agent-Lightning-style trajectory collection, an official Project MCP Server, PostgreSQL safe metadata tools, tool-call logging, RULER/vLLM judge scoring, TRL GRPO LoRA policy training, optional ART/RULER integration, a Streamlit dashboard, and CPU/GPU handoff through a shared network volume.
 
 Core mental model:
 
@@ -71,7 +71,7 @@ mods = [
 for m in mods:
     try:
         mod = __import__(m)
-        print(f"OK {m}: {getattr(mod, __version__, unknown)}")
+        print(f"OK {m}: {getattr(mod, '__version__', 'unknown')}")
     except Exception as e:
         print(f"MISSING {m}: {e}")
 PY
@@ -187,7 +187,7 @@ If RULER/vLLM scripts exist, syntax-check them:
 
 ```bash
 bash -n scripts/gpu/start_vllm_ruler_judge.sh || true
-bash -n scripts/gpu/run_04_ruler_then_trl_grpo.sh || true
+bash -n scripts/gpu/run_ruler_trl_handoff.sh || true
 ```
 
 Expected defaults:

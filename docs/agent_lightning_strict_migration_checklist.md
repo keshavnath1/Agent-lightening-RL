@@ -1,6 +1,6 @@
 # Agent Lightning Strict Migration Checklist
 
-This checklist tracks remaining work to enforce official Agent Lightning usage end-to-end.
+This checklist tracks the strict Agent Lightning guardrails that must remain true as the repository evolves.
 
 ## Current strict defaults completed
 
@@ -10,32 +10,30 @@ This checklist tracks remaining work to enforce official Agent Lightning usage e
 - Sidecar task/report API paths fail fast with explicit errors.
 - Rollout runner paths fail fast when server URL is missing or reporting fails.
 
-## Remaining non-official/custom surfaces to retire
+## Remaining custom surfaces to keep explicit
 
 1. Duplicate rollout entrypoints still exist.
 - `apps/rollout_worker/src/rollout_worker/run_track_a.py`
 - `apps/rollout_worker/src/rollout_worker/langgraph_workflow.py`
 - `src/agents/supervisor.py`
 
-Action:
-- Keep only one official execution path and convert other modules to wrappers that raise deprecation errors pointing to the official runner.
+Status:
+- Compatibility wrappers are allowed only when they delegate to the strict official runner path or enforce the same fail-fast behavior.
 
 2. Local compatibility abstractions still exist in training/adapter layers.
 - `src/training/grpo_algorithm.py`
 - `src/training/trainer_loop.py`
 - `src/inference/trace_adapter.py`
 
-Action:
-- Remove fallback base classes and require official Agent Lightning imports directly.
-- Delete local fallback stubs for Algorithm, Trainer, TraceAdapter, and Triplet.
+Status:
+- Strict validation requires direct official imports and rejects ImportError fallback stubs.
 
 3. Store/server integration is still custom.
 - `src/training/lightning_store.py`
 - `src/training/lightning_server_app.py`
 
-Action:
-- Replace custom report ingestion behavior with official runtime-managed storage/reporting path where available.
-- Keep only compatibility required by official package contracts.
+Status:
+- Keep this integration explicit. It should fail closed when required reporting, task-pull, or training-trigger behavior is unavailable.
 
 ## Operational safeguards
 
@@ -47,9 +45,10 @@ Action:
 python -m src.training.agent_lightning_official_runner
 ```
 
-## Acceptance criteria for full strict mode
+## Acceptance criteria for strict mode
 
 - No silent `except ...: pass` blocks around Agent Lightning reporting paths.
 - No signature-probing or positional fallback invocation for `Trainer.fit`.
 - No local JSONL task fallback in rollout execution path.
 - One canonical Track A entrypoint documented and enforced.
+- `python scripts/validate/validate_agent_lightning_strict.py` passes.

@@ -176,7 +176,7 @@ bash scripts/cpu/start_official_mcp_server.sh
 
 A placeholder Cursor/Claude configuration is available at `.cursor/mcp.example.json`. It intentionally uses `postgresql+psycopg2://USER:PASSWORD@HOST:PORT/DBNAME` and must not be replaced with real credentials in source control.
 
-The Project MCP server is separate from RunPod MCP. RunPod MCP is infrastructure-only; Project MCP is the ML-agent tool-learning interface. Its logged tool interactions can become trajectory data, RULER can judge whether the agent selected and used tools correctly, and TRL GRPO can train the policy to improve future tool choices while keeping the existing RULER/vLLM, TRL, QLoRA, and Agent-Lightning-style pipeline intact.
+The Project MCP server is separate from RunPod MCP. RunPod MCP is infrastructure-only; Project MCP is the ML-agent tool-learning interface. Its logged tool interactions can become trajectory data, RULER can judge whether the agent selected and used tools correctly, and TRL GRPO can train the policy to improve future tool choices while keeping the existing RULER/vLLM, PEFT LoRA, and Agent-Lightning-style pipeline intact.
 
 ## Lightweight Monorepo Phase 1
 

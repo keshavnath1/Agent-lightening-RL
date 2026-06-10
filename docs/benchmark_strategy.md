@@ -1,6 +1,15 @@
 # Benchmark Strategy
 
-The benchmark compares the baseline policy and the RL-tuned policy on held-out synthetic tabular ML tasks. The environment, tool layer, task split, scoring rubric, and artifact contracts remain fixed. The only variable that changes is the policy version used by the multi-agent runtime.
+The current benchmark compares **Track A with the baseline LLM** against **Track A after the tuned Track B adapter is redeployed**. The environment, OpenML task set, PostgreSQL/MCP boundary, scoring rubric, and artifact contracts remain fixed. The policy endpoint is the main variable: first the baseline hosted model, then the tuned model loaded with the Track B TRL GRPO adapter.
+
+The default fresh-RunPod command is `bash scripts/runpod_bootstrap_e2e.sh`. Set `RUN_LIVE_POLICY=1` when the run should start baseline and tuned local OpenAI-compatible endpoints and write the before/after comparison.
+
+| Stage | Evidence |
+|---|---|
+| Track A grouped training evidence | `reports/tracka_initial_benchmark.md` |
+| Track B TRL GRPO training log | `reports/run_logs/trackb_trl_grpo_latest.log` |
+| Baseline LLM vs tuned LLM comparison | `reports/tracka_initial_vs_baseline_vs_trackb_redeploy.md` |
+| Run summary for Streamlit | `reports/e2e_grpo_run_summary.json` |
 
 | Metric | Direction | Meaning |
 |---|---:|---|

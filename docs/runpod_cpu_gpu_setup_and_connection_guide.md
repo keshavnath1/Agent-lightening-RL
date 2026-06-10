@@ -42,14 +42,14 @@ The project should be deployed as a split control/training system rather than on
 |---|---|---|---|
 | Shared storage | Network Volume mounted at `/workspace` | Repository, data, profiles, trajectories, MLflow fallback logs, DVC metadata, checkpoints, reports | Visible inside each attached pod |
 | CPU/tool plane | CPU pod, or a low-cost GPU pod if CPU-only inventory is unavailable | `scripts/cpu/*`, PostgreSQL, MLflow, MCP server, GBM benchmark, scoring, evaluation | VS Code Remote-SSH for development; SSH terminal for runs; JupyterLab optional |
-| GPU/policy plane | CUDA GPU pod, preferably official RunPod PyTorch template | `scripts/gpu/*`, vLLM server, baseline/tuned inference, QLoRA/GRPO training | VS Code Remote-SSH for code; SSH terminal for long jobs; JupyterLab optional |
+| GPU/policy plane | CUDA GPU pod, preferably official RunPod PyTorch template | `scripts/gpu/*`, vLLM/local OpenAI-compatible serving, baseline/tuned inference, TRL GRPO LoRA training | VS Code Remote-SSH for code; SSH terminal for long jobs; JupyterLab optional |
 
 ```mermaid
 flowchart LR
     NV[(RunPod Network Volume\n/workspace)]
     CPU[CPU Pod\nTool + benchmark + reward plane]
     GPU[GPU Pod\nvLLM + policy training plane]
-    CPU -->|writes synthetic tasks, profiles, trajectories, rewards| NV
+    CPU -->|writes OpenML registry, profiles, trajectories, rewards| NV
     NV -->|reads GRPO dataset and configs| GPU
     GPU -->|writes adapters, tuned trajectories, inference outputs| NV
     NV -->|reads tuned outputs| CPU
@@ -107,7 +107,21 @@ pip install -r requirements-cpu.txt
 cp .env.example .env
 ```
 
-Run a CPU smoke test first:
+For the current fresh-RunPod path, use the one-command E2E bootstrap. It validates the code wiring, ingests the four OpenML tasks into PostgreSQL, runs Track A, prepares grouped GRPO data, runs Track B TRL GRPO, and can optionally start Streamlit.
+
+```bash
+export DATABASE_URL='<postgres url>'
+export HF_TOKEN='<hugging face token if your selected model needs it>'
+bash scripts/runpod_bootstrap_e2e.sh
+```
+
+For a live baseline-vs-tuned comparison and dashboard:
+
+```bash
+RUN_LIVE_POLICY=1 START_DASHBOARD=1 DASHBOARD_PORT=8503 bash scripts/runpod_bootstrap_e2e.sh
+```
+
+Use the older synthetic wrappers only for local smoke tests or focused debugging:
 
 ```bash
 export WORKSPACE_DIR=/workspace/self-improving-ml-agent
@@ -121,7 +135,7 @@ bash scripts/cpu/run_04_score_trajectories.sh
 python scripts/dev_summarize_validation.py | tee reports/runpod_cpu_validation_summary.txt
 ```
 
-For the fuller CPU stage, increase the task count and prepare the GRPO dataset for the GPU pod:
+For the fuller synthetic CPU stage, increase the task count and prepare the GRPO dataset for the GPU pod:
 
 ```bash
 export TASK_COUNT=100
@@ -166,7 +180,7 @@ export HF_HOME=/workspace/.cache/huggingface
 export TRANSFORMERS_CACHE=/workspace/.cache/huggingface
 ```
 
-Start baseline policy serving if you are ready to use vLLM/OpenAI-compatible inference. If you are only validating the handoff, you can run the current training placeholder first and replace it later with the full GRPO trainer.
+Start baseline policy serving if you are ready to use vLLM/OpenAI-compatible inference. Track B is now a real TRL GRPO launcher, not a placeholder; it reads `data/grpo/grouped_rollouts.jsonl` and writes a PEFT adapter checkpoint.
 
 ```bash
 # Terminal 1: start policy server.
@@ -190,7 +204,7 @@ export WORKSPACE_DIR=/workspace/self-improving-ml-agent
 bash scripts/cpu/run_06_compare_baseline_vs_tuned.sh
 ```
 
-The output report is written to `reports/baseline_vs_rl_tuned.md`. The validation summary from the feedback implementation pass is written to `reports/feedback_validation_summary.txt`.
+The current fresh-run comparison report is written to `reports/tracka_initial_vs_baseline_vs_trackb_redeploy.md`. The initial grouped evidence report is `reports/tracka_initial_benchmark.md`, and Track B training logs are in `reports/run_logs/trackb_trl_grpo_latest.log`.
 
 ## VS Code versus JupyterLab: final recommendation
 

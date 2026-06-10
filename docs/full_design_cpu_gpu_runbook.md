@@ -7,7 +7,7 @@ This repository now separates **strict execution modes** from local development 
 | Plane | Responsibility | Required runtime state |
 |---|---|---|
 | CPU pod | MCP/FastAPI wrapper, DataEngineer extraction from hosted PostgreSQL, agent rollouts, Agent Lightning orchestration, reward scoring, benchmark comparison | `DATABASE_URL`, `POSTGRES_SCHEMA=agentic_ml`, Python CPU requirements, optional `agentlightning` package for official Lightning mode |
-| GPU pod | vLLM/OpenAI-compatible policy endpoints, TRL GRPO LoRA training, optional veRL cluster command | GPU requirements, model cache, Hugging Face token when needed, `BASELINE_POLICY_URL`, `V2_POLICY_URL`, `TUNED_POLICY_URL`, and matching model names |
+| GPU pod | vLLM/OpenAI-compatible policy endpoints, TRL GRPO LoRA training, optional veRL cluster command | GPU requirements, model cache, Hugging Face token when needed, `BASELINE_POLICY_URL`, `TUNED_POLICY_URL`, and matching model names |
 
 ## Strict trainer modes
 
@@ -19,7 +19,7 @@ This repository now separates **strict execution modes** from local development 
 
 ## Suggested restart sequence
 
-Start the GPU pod first and expose one or more OpenAI-compatible `/v1/chat/completions` endpoints. A single GPU can be reused by changing the loaded model/adapter between benchmark phases, or separate URLs can be used for baseline, V2, and tuned policies.
+Start the GPU pod first and expose one or more OpenAI-compatible `/v1/chat/completions` endpoints. A single GPU can be reused by changing the loaded model/adapter between benchmark phases, or separate URLs can be used for baseline and tuned policies.
 
 ```bash
 cd /workspace/self-improving-ml-agent
@@ -67,25 +67,23 @@ export VERL_TRAIN_CMD='python -m verl.trainer.main_ppo trainer.project_name=self
 bash scripts/gpu/run_02_train_policy_qlora_grpo.sh
 ```
 
-## Baseline, V2, and tuned endpoint benchmark
+## Baseline and tuned endpoint benchmark
 
-The benchmark script requires live endpoint profiles. It does not create localhost defaults. `V2_POLICY_URL` can point to a second GPU pod, a second model server, or the same GPU pod after loading a different model or adapter.
+The benchmark script requires live endpoint profiles. It does not create localhost defaults. The default fresh-RunPod E2E script can also create local validation endpoints when `RUN_LIVE_POLICY=1`.
 
 ```bash
 cd /workspace/self-improving-ml-agent
 source .env
 export BASELINE_POLICY_URL='https://<baseline-gpu>-8000.proxy.runpod.net/v1/chat/completions'
 export BASELINE_POLICY_MODEL='qwen2.5-coder-32b-instruct'
-export V2_POLICY_URL='https://<v2-gpu>-8000.proxy.runpod.net/v1/chat/completions'
-export V2_POLICY_MODEL='qwen2.5-coder-32b-instruct-v2'
 export TUNED_POLICY_URL='https://<tuned-gpu>-8000.proxy.runpod.net/v1/chat/completions'
 export TUNED_POLICY_MODEL='qwen2.5-coder-32b-instruct-lora'
-export BENCHMARK_POLICIES='baseline v2 tuned'
+export BENCHMARK_POLICIES='baseline tuned'
 export BENCHMARK_LIMIT=4
 bash scripts/cpu/run_08_benchmark_policy_endpoints.sh
 ```
 
-The output report is written to `reports/baseline_v2_tuned_benchmark.md`. The report includes a `live_policy_endpoint_rate` column so a benchmark cannot accidentally look like a live GPU evaluation when the policy endpoint was not used.
+The default fresh-RunPod comparison report is `reports/tracka_initial_vs_baseline_vs_trackb_redeploy.md`. The report includes a `live_policy_endpoint_rate` column so a benchmark cannot accidentally look like a live GPU evaluation when the policy endpoint was not used.
 
 ## GRPO Track A → Track B run
 
@@ -95,9 +93,10 @@ The current branch is set up for a gated end-to-end workflow. **Track A** first 
 
 | Checkpoint | Evidence artifact | Result |
 |---|---|---:|
-| Track A baseline, four OpenML tasks | `reports/e2e_tracka_baseline_latest.md` | Written by `scripts/runpod_bootstrap_e2e.sh` |
-| Track B adapter, same four tasks | `reports/e2e_tracka_vs_trackb_summary_latest.json` | Written by the post-redeploy benchmark |
-| Track B adapter endpoint run | `reports/e2e_trackb_adapter_latest.md` | Written when `RUN_LIVE_POLICY=1` |
+| Track A initial grouped evidence, four OpenML tasks | `reports/tracka_initial_benchmark.md` | Written by `scripts/runpod_bootstrap_e2e.sh` |
+| Track B TRL GRPO adapter training | `reports/run_logs/trackb_trl_grpo_latest.log` | Written by `scripts/gpu/run_02_train_policy_qlora_grpo.sh` |
+| Baseline LLM vs tuned LLM benchmark | `reports/tracka_initial_vs_baseline_vs_trackb_redeploy.md` | Written when `RUN_LIVE_POLICY=1` |
+| Streamlit run summary | `reports/e2e_grpo_run_summary.json` | Committed as sanitized E2E dashboard evidence |
 | Grouped GRPO evidence | `data/grpo/grouped_rollouts.jsonl` | Used by TRL GRPO training |
 
 The lightweight validation endpoint now loads the adapter during process start through `peft.PeftModel.from_pretrained(...)` when `LOCAL_LLM_ADAPTER_PATH` is provided. The `/v1/load_lora_adapter` route remains a compatibility endpoint for reload requests, while production hot-swap should still use a vLLM server with LoRA support. The dashboard Results tab has been updated to discover the new E2E reports first, so the Streamlit app surfaces the latest Track A/Track B benchmark evidence before older baseline reports.

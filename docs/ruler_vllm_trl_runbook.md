@@ -1,9 +1,9 @@
 # RULER vLLM Judge to TRL GRPO Handoff Runbook
 
 **Author:** Manus AI  
-**Last updated:** June 04, 2026
+**Last updated:** June 10, 2026
 
-This runbook documents the one-track-at-a-time implementation added for the new GPU RunPod session. The goal is to score grouped rollouts with a RULER-style judge, preserve those scores as reward metadata, and hand the scored dataset to the repository-native TRL/QLoRA training entrypoint without leaking score labels into model prompts.
+This runbook documents the one-track-at-a-time RULER handoff path. The goal is to score grouped rollouts with a RULER-style judge, preserve those scores as reward metadata, and hand the scored dataset to the repository-native **TRL GRPO** training entrypoint without leaking score labels into model prompts. The default fresh RunPod path uses `REWARD_MODE=hybrid`; use this handoff when you explicitly want `REWARD_MODE=ruler_relative`.
 
 | Track | Implementation area | Primary files | Operator gate |
 |---|---|---|---|

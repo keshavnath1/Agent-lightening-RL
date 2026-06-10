@@ -2,7 +2,7 @@
 
 ## Project Identity
 
-This repository is a **self-improving ML-agent monorepo**. The project combines Agent-Lightning-style trajectory collection, an official Project MCP Server for safe ML tools, PostgreSQL-backed task/data/reward metadata, tool-call logging and tool-learning rewards, RULER/vLLM judge scoring, TRL GRPO and QLoRA training, optional ART/RULER integration, a Streamlit dashboard for demo and validation, and CPU/GPU handoff through a shared network volume.
+This repository is a **self-improving ML-agent monorepo**. The project combines Agent-Lightning-style trajectory collection, an official Project MCP Server for safe ML tools, PostgreSQL-backed task/data/reward metadata, tool-call logging and tool-learning rewards, RULER/vLLM judge scoring, TRL GRPO with PEFT LoRA adapters, optional ART/RULER integration, a Streamlit dashboard for demo and validation, and CPU/GPU handoff through a shared network volume.
 
 Do not treat this repository as a normal single-script ML project. It is an **agentic ML workflow platform** with multiple cooperating packages, services, applications, validation scripts, and runtime handoff paths.
 

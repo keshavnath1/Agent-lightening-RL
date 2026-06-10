@@ -1,12 +1,12 @@
 # Microsoft Agent Lightning Assessment and Migration Notes
 
-> **Last updated:** 2026-06-02 (Session 3 — all Lightning integration components implemented)
+> **Last updated:** 2026-06-10 (strict validation update)
 
 ## Short answer
 
 The current repository **implements a complete Agent Lightning-compatible execution layer** as custom wrappers that are drop-in compatible with the official Microsoft Agent Lightning architecture.  All core components exist: `LightningStoreAdapter`, `GRPOAlgorithm`, `LightningTrainer`, `SpanTraceAdapter`, `MLAgentLitAgent`, `LightningClientSidecar`, and a full FastAPI Lightning Server.
 
-The **official `agentlightning` pip package is intentionally optional** due to a `blinker` version conflict with the current environment.  All integration classes use a `try: from agentlightning import X; except ImportError: class X: ...stub...` pattern so the system runs correctly whether or not the package is installed.
+The earlier compatibility-stub approach has been tightened. Current strict validation requires the training/adapter bridge modules to import official Agent Lightning classes directly and fail fast when the runtime is unavailable. The custom Lightning server and store still exist as project integration surfaces, but silent fallback stubs are no longer considered acceptable in strict paths.
 
 Microsoft describes Agent Lightning as a framework that can optimize agents built with many existing agent frameworks by **decoupling agent workflow development from RL training**, with a Lightning Server and Lightning Client bridging agent execution and training infrastructure. Its trace collection converts agent traces into transition tuples of **state_t, action_t, reward_t, state_t+1**, then uses RL infrastructure such as **veRL** and algorithms such as **GRPO** for optimization.[^1]
 
@@ -25,7 +25,7 @@ Microsoft describes Agent Lightning as a framework that can optimize agents buil
 | veRL integration | `run_verl_training_handoff` in training script; `start_verl_training.sh` with strict mode: fails on missing veRL unless `ALLOW_VERL_FALLBACK=1`. | Official veRL training cluster. | ✅ Strict mode (fixed Session 3) |
 | Reward signal | `src/rewards/scorer.py` computes evidence-based reward components. | User-defined reward signal. | ✅ Reusable |
 | Trace visualization | Streamlit dashboard Tab 4 — Live Trace — streams LangGraph node updates in real time. | Observability. | ✅ Implemented |
-| Official package runtime | `agentlightning` pip package — blocked by `blinker` conflict; stubs in place everywhere. | Full Lightning runtime. | ⚠️ Optional / unproven |
+| Official package runtime | `agentlightning` pip package is required for strict official paths; missing or incompatible installs should fail validation rather than silently stub behavior. | Full Lightning runtime. | Strict / fail-fast |
 
 ## What changed in Session 3
 
@@ -83,7 +83,7 @@ ALLOW_VERL_FALLBACK=1 bash scripts/gpu/start_verl_training.sh
 
 1. Keep the CPU pod as the **agent execution side**.
 2. Keep the GPU pod as the **policy inference and training side**.
-3. Resolve `blinker` conflict to enable `pip install agentlightning` — all stubs will automatically defer to the real package.
+3. Keep official Agent Lightning imports fail-fast in strict modules; do not reintroduce silent fallback stubs.
 4. Validate `LitAgent.rollout()`, `LightningStore`, and `LightningServer` against the official package's gRPC interface once a compatible version is available.
 5. Replace the custom `LightningStoreAdapter` with the official `LightningStore` class if API-compatible.
 6. Keep `scorer.py` and `reviewer.py` as the project-specific reward and guardrail layer regardless of runtime.

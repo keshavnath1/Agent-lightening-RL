@@ -1,7 +1,7 @@
 # Streamlit Dashboard Runbook and GRPO E2E Update
 
 **Author:** Manus AI  
-**Last updated:** June 07, 2026
+**Last updated:** June 10, 2026
 
 ## Purpose
 
@@ -11,11 +11,11 @@ The Streamlit dashboard is the operator-facing handoff surface for the self-impr
 
 | Area | Validated state | Evidence |
 |---|---|---|
-| Baseline policy benchmark | Track A runs against the baseline local OpenAI-compatible endpoint before any redeploy. | `reports/e2e_tracka_baseline_latest.md` |
+| Initial Track A evidence | Track A generates grouped rollout evidence from the four OpenML PostgreSQL tasks. | `reports/tracka_initial_benchmark.md` |
 | TRL GRPO training | Track B trains a PEFT LoRA adapter with TRL GRPO from grouped, scored rollouts. | `checkpoints/trackb_trl_grpo_runpod/adapter_metadata.json` |
 | Adapter redeploy | The local OpenAI-compatible validation endpoint loads the trained adapter at process start through `LOCAL_LLM_ADAPTER_PATH`. | `reports/service_logs/` |
-| Post-redeploy benchmark | Track A reruns after adapter redeploy for like-for-like comparison. | `reports/e2e_trackb_adapter_latest.md` |
-| Before/after comparison | The comparison report records baseline vs tuned reward, endpoint use, and task-level deltas. | `reports/e2e_tracka_vs_trackb_summary_latest.json` |
+| Baseline vs tuned benchmark | Track A runs once with the baseline LLM endpoint and again with the tuned adapter endpoint. | `reports/tracka_initial_vs_baseline_vs_trackb_redeploy.md` |
+| Run summary | Streamlit reads the committed summary JSON for trainer, task, artifact, and checkpoint metadata. | `reports/e2e_grpo_run_summary.json` |
 
 ## How to run the dashboard
 
@@ -44,7 +44,7 @@ source .venv-gpu/bin/activate
 | Setup & Handoff | Shows CPU/GPU package checks and recommends the environment setup script plus Track A/Track B commands. |
 | Track A | Shows the tabular workflow stages, champion artifacts, and grouped rollout readiness. |
 | Track B | Shows trainer selection, reward mode configuration, dry-run command generation, and adapter evidence. |
-| Results | Reads the newest E2E Track A/Track B markdown reports before older baseline reports. |
+| Results | Reads the committed Track A initial benchmark, baseline-vs-tuned comparison, GRPO logs, and run summary. |
 | Advanced Debug | Available in Developer mode for raw service diagnostics. |
 
 ## Reproducible command sequence

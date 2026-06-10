@@ -1,16 +1,16 @@
 # RunPod CPU/GPU Architecture Validation Checklist
 
-This checklist captures the intended two-plane architecture and the concrete validation points used to confirm whether the CPU RunPod repository is ready to run against the GPU-hosted Qwen policy service.
+This checklist captures the intended two-plane architecture and the concrete validation points used to confirm whether the RunPod repository is ready to run the OpenML PostgreSQL Track A / TRL GRPO Track B loop.
 
 ## Intended architecture
 
-The system is split into a **CPU control plane** and a **GPU policy plane**. The CPU plane owns orchestration, data generation, profiling, SQL/data access, experiment tracking, trajectory scoring, dataset preparation, and comparison reports. The GPU plane owns heavyweight language-model inference and policy training. The two planes communicate through an **OpenAI-compatible HTTP API** served by vLLM on the GPU pod.
+The system is split into a **CPU control plane** and a **GPU policy plane**. The CPU plane owns OpenML ingestion, PostgreSQL/MCP metadata access, orchestration, profiling, experiment tracking, trajectory scoring, dataset preparation, and comparison reports. The GPU plane owns heavyweight language-model inference and policy training. The two planes communicate through an **OpenAI-compatible HTTP API** served by vLLM or the local validation server.
 
 ```mermaid
 flowchart LR
     subgraph CPU[CPU RunPod control plane]
-        Tasks[Synthetic task generator]
-        MCP[MCP / FastAPI tool server]
+        Tasks[OpenML task ingestion]
+        MCP[Project MCP metadata tools]
         PG[(PostgreSQL)]
         MLflow[(MLflow tracking)]
         Agent[Agent workflow and PolicyClient]
@@ -21,8 +21,8 @@ flowchart LR
 
     subgraph GPU[GPU RunPod policy plane]
         VLLM[vLLM OpenAI-compatible API]
-        Qwen[Qwen2.5-Coder-32B-Instruct]
-        Train[QLoRA / GRPO training]
+        Qwen[Qwen2.5-3B-Instruct]
+        Train[TRL GRPO LoRA training]
     end
 
     Tasks --> Agent
@@ -45,27 +45,26 @@ flowchart LR
 | MCP server | Service is reachable on `MCP_URL` or `http://127.0.0.1:8090` and profile endpoint can read a generated parquet file | `scripts/cpu/start_mcp_server.sh` plus `scripts/cpu/validate_architecture.sh` |
 | MLflow | Tracking service or local file store is available | `scripts/cpu/start_mlflow.sh` plus `scripts/cpu/validate_architecture.sh` |
 | PostgreSQL | `DATABASE_URL` resolves to a reachable PostgreSQL instance, either local or externally hosted | `scripts/cpu/start_postgres.sh` or an externally provisioned PostgreSQL service |
-| Hosted synthetic data | `agentic_ml.synthetic_tasks` and `agentic_ml.synthetic_dataset_rows` are populated from `data/synthetic` | `DATABASE_URL=... scripts/cpu/load_synthetic_to_postgres.py` plus `scripts/cpu/validate_architecture.sh` |
-| Synthetic data | Tasks and parquet datasets exist under `data/synthetic` | CPU smoke workflow outputs |
-| Baseline trajectories | Rollouts exist under `trajectories/baseline` | `scripts/cpu/run_03_run_baseline_workflow.sh` |
-| Scored trajectories | Reward-scored rollouts exist under `trajectories/scored` | `scripts/cpu/run_04_score_trajectories.sh` |
-| GRPO dataset | Grouped rollouts exist under `data/grpo/grouped_rollouts.jsonl` | `scripts/cpu/run_05_prepare_grpo_dataset.sh` |
+| Hosted OpenML registry | `ml_registry.real_benchmark_tasks`, `ml_registry.real_dataset_summaries`, and `ml_execution.dataset_sources` are populated | `scripts/ingest_openml_to_postgres.py` through `scripts/runpod_bootstrap_e2e.sh` |
+| Track A trajectories | Rollouts exist under `trajectories/tracka_initial` | `scripts/runpod_bootstrap_e2e.sh` or `python -m src.agents.supervisor` |
+| Scored Track A trajectories | Reward-scored rollouts exist under `trajectories/tracka_initial_scored` | `python -m src.rewards.scorer` |
+| GRPO dataset | Grouped rollouts exist under `data/grpo/grouped_rollouts.jsonl` | `python -m src.training.prepare_grpo_dataset` |
 | Agent Lightning export | Transition export exists under `data/grpo/agent_lightning_transitions.jsonl` | `scripts/cpu/run_05b_export_agent_lightning_transitions.sh` |
-| Comparison report | `reports/baseline_vs_rl_tuned.md` exists | `scripts/cpu/run_06_compare_baseline_vs_tuned.sh` |
+| Comparison report | `reports/tracka_initial_vs_baseline_vs_trackb_redeploy.md` exists when `RUN_LIVE_POLICY=1` | `scripts/runpod_bootstrap_e2e.sh` |
 | GPU policy endpoint | CPU pod can call the GPU vLLM `/models` and `/chat/completions` routes | `GPU_POLICY_BASE_URL=... scripts/cpu/validate_architecture.sh` |
 
 ## GPU-plane validation criteria
 
 | Component | Expected state | Validation command or signal |
 |---|---|---|
-| Model | `Qwen/Qwen2.5-Coder-32B-Instruct` cached or downloadable with authorized Hugging Face access | vLLM startup logs |
+| Model | `Qwen/Qwen2.5-3B-Instruct` cached or downloadable with authorized Hugging Face access | vLLM/local server startup logs |
 | vLLM API | OpenAI-compatible API listening on GPU pod port `8000` | `GET /v1/models` |
-| Served model alias | Client model id is `qwen2.5-coder-32b-instruct` unless overridden | `MODEL_NAME=qwen2.5-coder-32b-instruct` |
+| Served model alias | Client model id matches the configured policy model unless overridden | `MODEL_NAME=Qwen/Qwen2.5-3B-Instruct` |
 | CPU reachability | RunPod port proxy exposes the GPU service to the CPU pod | `https://<gpu-pod-public-id>-8000.proxy.runpod.net/v1` |
 
 ## Latest hosted PostgreSQL validation status
 
-The repository source, CPU smoke workflow, MCP server, MLflow service, artifacts, and GPU Qwen endpoint have been validated. The previous local PostgreSQL gap is resolved by using the hosted Prisma PostgreSQL service through `DATABASE_URL`. The hosted schema `agentic_ml` contains `synthetic_tasks` and `synthetic_dataset_rows`, loaded from the repository synthetic metadata and parquet files. Runtime deployments should set `DATABASE_URL` and `POSTGRES_SCHEMA=agentic_ml` in the CPU pod environment before starting the MCP server or running `scripts/cpu/validate_architecture.sh`.
+The repository source, OpenML ingestion path, strict MCP boundary, Track A rollouts, Track B TRL GRPO launcher, Streamlit dashboard, and committed evidence files have been validated. Runtime deployments should set `DATABASE_URL` before running `scripts/runpod_bootstrap_e2e.sh`. Set `HF_TOKEN` or `HUGGINGFACE_HUB_TOKEN` when the selected model requires Hugging Face authentication.
 
 ## Source-only packaging rule
 
